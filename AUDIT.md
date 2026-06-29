@@ -58,10 +58,12 @@ bugs in the current prototype, but blockers for a licensed product.
   (`SanctionsScreeningResult` is written but not yet consulted in the money path).
   Wire a licensed provider and **block/escalate on POTENTIAL/CONFIRMED matches**;
   implement the `SANCTIONS_HIT` critical rule end-to-end.
-- **Authorization hold lifecycle.** The `capture=false` auth-only path increments
-  `holdTotal` but there is no capture/expiry job to release it. Implement
-  `captureHold` / `releaseHold` (ledger move + `holdTotal` decrement + status)
-  and an expiry sweeper. (The default `capture=true` flow is complete and safe.)
+- **Authorization hold lifecycle.** ✅ RESOLVED — `captureHold` / `releaseHold`
+  (ledger move + `holdTotal` decrement + status) and an `expireHolds` sweeper are
+  implemented (`src/lib/operations/holds.ts`), exposed via `POST /api/holds/[id]/capture`
+  (idempotent) and `/release`, surfaced as "Pending authorizations" on the cards page,
+  and covered by integration tests. Production still needs the sweeper on a real
+  scheduler/cron.
 - **Transaction monitoring at scale.** The rule engine is synchronous and
   in-request; production needs an async monitoring pipeline, case management,
   SAR workflow, and tunable thresholds per risk tier.
