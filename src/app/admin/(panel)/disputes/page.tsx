@@ -1,4 +1,4 @@
-import { Gavel, CheckCircle2, Clock, Search, XCircle } from "lucide-react";
+import { Gavel, CheckCircle2, Search, XCircle } from "lucide-react";
 import { requirePageAdmin } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/brand/page-header";
