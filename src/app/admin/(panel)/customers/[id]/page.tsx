@@ -150,39 +150,49 @@ export default async function CustomerDetailPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Button asChild variant="ghost" size="sm" className="-ml-2 mb-3 text-muted-foreground">
-          <Link href="/admin/customers">
-            <ArrowLeft className="h-4 w-4" /> Back to customers
-          </Link>
-        </Button>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gradient text-lg font-semibold text-white shadow-glow">
-              {(profile?.firstName?.[0] ?? user.email[0] ?? "?").toUpperCase()}
-              {(profile?.lastName?.[0] ?? "").toUpperCase()}
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight">{displayName}</h1>
-                <Badge variant={userStatusVariant(user.status)}>{user.status}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
+      <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
+        <Link href="/admin/customers">
+          <ArrowLeft className="h-4 w-4" /> Back to customers
+        </Link>
+      </Button>
+
+      {/* Profile hero */}
+      <section className="premium-surface ring-glow relative flex flex-col gap-5 p-6 text-white sm:flex-row sm:items-center sm:justify-between md:p-8">
+        <div className="relative z-10 flex items-center gap-4">
+          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-xl font-semibold text-white shadow-glow ring-1 ring-white/20 backdrop-blur">
+            {(profile?.firstName?.[0] ?? user.email[0] ?? "?").toUpperCase()}
+            {(profile?.lastName?.[0] ?? "").toUpperCase()}
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+                {displayName}
+              </h1>
+              <Badge variant={userStatusVariant(user.status)}>{user.status}</Badge>
             </div>
+            <p className="mt-0.5 text-sm text-white/70">{user.email}</p>
+            <p className="mt-1 font-mono text-[11px] text-white/50">{user.id}</p>
           </div>
+        </div>
+        <div className="relative z-10">
           <CustomerActionsClient
             customerId={user.id}
             customerName={displayName}
             status={user.status}
           />
         </div>
-      </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Identity */}
-        <Card className="lg:col-span-2">
+        <Card className="glass-card lift lg:col-span-2">
           <CardHeader>
-            <CardTitle>Identity</CardTitle>
+            <CardTitle className="flex items-center gap-2 font-display text-lg">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-blue/30 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
+                <ShieldCheck className="h-4 w-4" />
+              </span>
+              Identity
+            </CardTitle>
             <CardDescription>Profile and contact details on file.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -246,21 +256,25 @@ export default async function CustomerDetailPage({
 
         {/* Risk & KYC summary */}
         <div className="space-y-6">
-          <Card>
+          <Card className="glass-card ring-glow lift">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Risk score</CardTitle>
-                <GaugeCircle className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="font-display text-lg">Risk score</CardTitle>
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                  <GaugeCircle className="h-4 w-4" />
+                </span>
               </div>
             </CardHeader>
             <CardContent>
               {risk ? (
                 <div className="space-y-3">
                   <div className="flex items-end justify-between">
-                    <span className="text-4xl font-semibold tabular-nums">{risk.score}</span>
+                    <span className="font-display text-5xl font-semibold tabular-nums tracking-tight">
+                      {risk.score}
+                    </span>
                     <Badge variant={riskVariant(risk.level)}>{risk.level}</Badge>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-brand-gradient"
                       style={{ width: `${Math.min(100, Math.max(0, risk.score))}%` }}
@@ -276,11 +290,13 @@ export default async function CustomerDetailPage({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="glass-card lift">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>KYC</CardTitle>
-                <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="font-display text-lg">KYC</CardTitle>
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan ring-1 ring-white/10">
+                  <ShieldCheck className="h-4 w-4" />
+                </span>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">

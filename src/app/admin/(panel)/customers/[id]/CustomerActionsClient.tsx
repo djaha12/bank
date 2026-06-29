@@ -94,7 +94,12 @@ export function CustomerActionsClient({
       <div className="flex flex-wrap items-center gap-2">
         {isActive ? (
           <>
-            <Button variant="outline" size="sm" onClick={() => start("SUSPEND")}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => start("SUSPEND")}
+              className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+            >
               <ShieldOff className="h-4 w-4" /> Suspend
             </Button>
             <Button variant="destructive" size="sm" onClick={() => start("BLOCK")}>

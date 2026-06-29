@@ -452,7 +452,7 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="ring-glow">
           <CardHeader>
             <Stepper current={step} />
           </CardHeader>
@@ -557,11 +557,13 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
                     <div className="flex flex-col items-center gap-4">
                       <div
                         className={`relative flex h-56 w-56 items-center justify-center overflow-hidden rounded-full border-2 ${
-                          selfieCaptured ? "border-success bg-success/5" : "border-dashed border-primary/40 bg-muted/40"
+                          selfieCaptured
+                            ? "border-success bg-success/5"
+                            : "border-dashed border-brand-violet/40 bg-muted/40"
                         }`}
                       >
                         {/* animated framing ring */}
-                        <div className="absolute inset-3 rounded-full border border-primary/30" />
+                        <div className="absolute inset-3 animate-glow-pulse rounded-full border border-brand-violet/30" />
                         {selfieCaptured ? (
                           <motion.div
                             initial={{ scale: 0.6, opacity: 0 }}
@@ -820,9 +822,11 @@ function StepShell({
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-primary/10 p-2">{icon}</div>
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/25 to-brand-violet/5 ring-1 ring-white/10">
+          {icon}
+        </div>
         <div>
-          <h3 className="text-base font-semibold">{title}</h3>
+          <h3 className="font-display text-base font-semibold tracking-tight">{title}</h3>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -864,8 +868,10 @@ function DocUpload({
   const inputId = `doc-${type}`;
   return (
     <div
-      className={`rounded-xl border p-4 transition-colors ${
-        fileName ? "border-success/40 bg-success/5" : "border-dashed border-border/60"
+      className={`rounded-2xl border p-4 transition-all ${
+        fileName
+          ? "border-success/40 bg-success/[0.06]"
+          : "border-dashed border-border/60 hover:border-brand-violet/40 hover:bg-card/50"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -915,7 +921,7 @@ function RiskToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 p-4">
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 transition-colors hover:border-brand-violet/30">
       <span className="text-sm">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
     </div>
@@ -924,8 +930,10 @@ function RiskToggle({
 
 function ReviewGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border/60 p-4">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</div>
+    <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+      <div className="mb-2 font-display text-xs font-semibold uppercase tracking-wide text-brand-violet">
+        {title}
+      </div>
       <dl className="space-y-1.5">{children}</dl>
     </div>
   );
