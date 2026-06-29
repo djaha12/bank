@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * NEO BANK OS 2026 — Design System tokens
+ * Dark = deep navy / near-black, light = clean white / soft gray.
+ * Accents: electric blue, emerald, violet.
+ */
+@layer base {
+  :root {
+    /* Light mode — clean white, soft gray, blue accent */
+    --background: 210 40% 99%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 160 100% 97%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 100% 12%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    --brand-blue: 217 91% 60%;
+    --brand-emerald: 160 84% 39%;
+    --brand-violet: 256 85% 64%;
+
+    --radius: 0.85rem;
+
+    --font-sans: "Inter", ui-sans-serif, system-ui;
+    --font-mono: ui-monospace, "SFMono-Regular", monospace;
+    --font-display: "Inter", ui-sans-serif, system-ui;
+  }
+
+  .dark {
+    /* Dark mode — deep navy / near-black premium */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 44% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 217 33% 16%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 14%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 158 64% 47%;
+    --success-foreground: 158 100% 8%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 38 100% 10%;
+
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 217 91% 60%;
+
+    --brand-blue: 217 91% 65%;
+    --brand-emerald: 158 64% 52%;
+    --brand-violet: 256 90% 72%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+  /* Tabular numerals for all monetary figures */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Moderate glassmorphism surface */
+  .glass {
+    @apply border border-white/10 bg-white/5 backdrop-blur-xl;
+  }
+  .glass-card {
+    @apply rounded-xl border border-border/60 bg-card/80 backdrop-blur-xl shadow-card dark:shadow-card-dark;
+  }
+  /* Premium gradient card surface (used for the virtual card + hero stats) */
+  .premium-surface {
+    @apply relative overflow-hidden rounded-2xl border border-white/10;
+    background-image: var(--tw-gradient-stops, none),
+      linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(56, 189, 248, 0.1), rgba(16, 185, 129, 0.14));
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-muted;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.06),
+      transparent
+    );
+  }
+  /* Thin, premium scrollbars */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

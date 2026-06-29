@@ -1,0 +1,929 @@
+// =============================================================================
+// NEO BANK OS 2026 — Prisma schema
+// -----------------------------------------------------------------------------
+// SANDBOX prototype. Not a real bank. All money is play money on an internal
+// double-entry ledger. Monetary amounts are stored as BigInt MINOR UNITS
+// (tyiyn / cents) — never floats. Currency is an ISO-style enum.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+enum Currency {
+  KGS
+  USD
+  EUR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+  CLOSED
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum KycDocumentType {
+  PASSPORT
+  ID_CARD
+  DRIVERS_LICENSE
+  PROOF_OF_ADDRESS
+  SELFIE
+}
+
+enum AccountOwnerType {
+  USER
+  SYSTEM
+}
+
+// System accounts make double-entry balance across the whole bank.
+enum SystemAccountKind {
+  FUNDING // bank equity / demo funding source
+  FEE_INCOME // fees collected
+  FX_POSITION // FX trading position (per currency)
+  SETTLEMENT // external settlement clearing
+  SUSPENSE // unresolved / holds clearing
+  CARD_SCHEME // card network settlement
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CARD
+  SYSTEM
+}
+
+enum AccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum TransactionType {
+  DEMO_DEPOSIT
+  INTERNAL_TRANSFER
+  P2P_TRANSFER
+  FX_CONVERSION
+  CARD_AUTHORIZATION
+  CARD_CAPTURE
+  FEE
+  REVERSAL
+  REFUND
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum TransferKind {
+  OWN
+  P2P
+  BANK
+  QR
+  SCHEDULED
+  RECURRING
+}
+
+enum HoldStatus {
+  HELD
+  CAPTURED
+  RELEASED
+  EXPIRED
+}
+
+enum CardType {
+  VIRTUAL_DEBIT
+}
+
+enum CardStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  REVIEWING
+  CLOSED
+}
+
+enum AmlRuleCode {
+  LARGE_TRANSACTION
+  MANY_SMALL_TRANSFERS
+  HIGH_RISK_COUNTRY
+  UNUSUAL_MERCHANT
+  VELOCITY
+  NEW_DEVICE_LARGE_TRANSFER
+  FAILED_LOGINS
+  ABOVE_NORMAL_BEHAVIOR
+  SANCTIONS_HIT
+}
+
+enum SanctionsOutcome {
+  CLEAR
+  POTENTIAL_MATCH
+  CONFIRMED_MATCH
+}
+
+enum DisputeStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  REJECTED
+}
+
+enum NotificationType {
+  TRANSACTION
+  SECURITY
+  KYC
+  CARD
+  SYSTEM
+  AI_INSIGHT
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum SavingsGoalStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum AiRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum OtpPurpose {
+  LOGIN
+  SIGNUP
+  STEP_UP
+}
+
+// ----------------------------------------------------------------------------
+// Identity & customer
+// ----------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String? // mock password; passkey-ready (see WebAuthnCredential)
+  status       UserStatus @default(ACTIVE)
+  kycStatus    KycStatus  @default(NOT_STARTED)
+  emailVerified Boolean   @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  profile          CustomerProfile?
+  accounts         Account[]
+  cards            Card[]
+  kycApplications  KycApplication[]
+  deviceSessions   DeviceSession[]
+  loginEvents      LoginEvent[]
+  notifications    Notification[]
+  budgets          Budget[]
+  savingsGoals     SavingsGoal[]
+  aiConversations  AiConversation[]
+  riskScores       RiskScore[]
+  amlAlerts        AmlAlert[]
+  disputes         Dispute[]
+  transactions     Transaction[]
+  transfers        Transfer[]
+  otpChallenges    OtpChallenge[]
+  webauthnCreds    WebAuthnCredential[]
+  sanctionsResults SanctionsScreeningResult[]
+
+  @@index([status])
+  @@index([kycStatus])
+  @@index([deletedAt])
+}
+
+model CustomerProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  firstName     String
+  lastName      String
+  phone         String?
+  dateOfBirth   DateTime?
+  nationality   String? // ISO country code
+  country       String? // residence ISO country code
+  addressLine1  String?
+  addressLine2  String?
+  city          String?
+  postalCode    String?
+  occupation    String?
+  sourceOfFunds String?
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------------------------------
+// KYC / onboarding
+// ----------------------------------------------------------------------------
+
+model KycApplication {
+  id                 String    @id @default(uuid())
+  userId             String
+  status             KycStatus @default(PENDING)
+  riskQuestionnaire  Json? // answers
+  sourceOfFunds      String?
+  declaredPepStatus  Boolean   @default(false)
+  reviewerId         String? // AdminUser id
+  reviewNotes        String?
+  rejectionReason    String?
+  submittedAt        DateTime?
+  decidedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents KycDocument[]
+  reviewer  AdminUser?      @relation(fields: [reviewerId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+model KycDocument {
+  id              String          @id @default(uuid())
+  applicationId   String
+  type            KycDocumentType
+  // We NEVER store real document binaries in the sandbox. Only a mock object
+  // reference + extracted metadata. Real PII/document storage requires a
+  // licensed KYC provider (see COMPLIANCE.md).
+  storageRef      String // mock object key
+  fileName        String?
+  verified        Boolean         @default(false)
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+
+  application KycApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+// ----------------------------------------------------------------------------
+// Accounts & double-entry ledger
+// ----------------------------------------------------------------------------
+
+model Account {
+  id          String            @id @default(uuid())
+  userId      String? // null for SYSTEM accounts
+  ownerType   AccountOwnerType  @default(USER)
+  systemKind  SystemAccountKind?
+  type        AccountType       @default(CHECKING)
+  currency    Currency
+  status      AccountStatus     @default(ACTIVE)
+  name        String
+  // Display number only (e.g. last-4). Never an IBAN / real account number.
+  displayNumber String
+  // Cached balance projection (minor units). Always updated atomically inside
+  // the same DB transaction that appends ledger entries. Verified against the
+  // recomputed ledger sum by tests + an integrity job.
+  balanceCached BigInt          @default(0)
+  // Total of active holds (minor units). availableBalance = balanceCached - holdTotal.
+  holdTotal     BigInt          @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+  holds        Hold[]
+  cards        Card[]
+
+  @@index([userId])
+  @@index([currency])
+  @@index([status])
+  @@index([ownerType, systemKind])
+}
+
+// Append-only. Never updated or deleted. Each money movement produces >= 2
+// entries (debits and credits) that sum to zero within a currency.
+model LedgerEntry {
+  id            String          @id @default(uuid())
+  transactionId String
+  accountId     String
+  direction     LedgerDirection
+  // Always a positive amount in minor units; direction carries the sign.
+  amount        BigInt
+  currency      Currency
+  // Account balance immediately after applying this entry (projection).
+  balanceAfter  BigInt
+  createdAt     DateTime        @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  account     Account     @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+  @@index([transactionId])
+  @@index([currency])
+}
+
+model Transaction {
+  id                  String            @id @default(uuid())
+  type                TransactionType
+  status              TransactionStatus @default(PENDING)
+  currency            Currency
+  // Principal amount in minor units (informational; truth is in ledger entries).
+  amount              BigInt
+  feeAmount           BigInt            @default(0)
+  description         String?
+  reference           String? // human-facing reference code
+  userId              String? // initiator (null for system-driven)
+  idempotencyKey      String?
+  relatedTransactionId String? // for reversals / refunds / captures
+  metadata            Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  postedAt            DateTime?
+
+  user          User?         @relation(fields: [userId], references: [id])
+  ledgerEntries LedgerEntry[]
+  transfer      Transfer?
+  amlAlerts     AmlAlert[]
+  disputes      Dispute[]
+  holds         Hold[]
+  related       Transaction?  @relation("RelatedTxn", fields: [relatedTransactionId], references: [id])
+  reversals     Transaction[] @relation("RelatedTxn")
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([type])
+  @@index([reference])
+}
+
+model Transfer {
+  id            String       @id @default(uuid())
+  transactionId String       @unique
+  userId        String
+  kind          TransferKind
+  fromAccountId String
+  toAccountId   String? // null for external/bank sandbox
+  // Counterparty display info for P2P/bank sandbox (never real bank secrets).
+  counterparty  Json?
+  amount        BigInt
+  currency      Currency
+  note          String?
+  scheduledFor  DateTime?
+  recurringRule String? // e.g. "RRULE:FREQ=MONTHLY" (sandbox)
+  createdAt     DateTime     @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([kind])
+}
+
+model Hold {
+  id            String     @id @default(uuid())
+  accountId     String
+  cardId        String?
+  transactionId String?
+  amount        BigInt
+  currency      Currency
+  status        HoldStatus @default(HELD)
+  merchantName  String?
+  mcc           String? // merchant category code
+  createdAt     DateTime   @default(now())
+  expiresAt     DateTime?
+  releasedAt    DateTime?
+
+  account     Account      @relation(fields: [accountId], references: [id])
+  card        Card?        @relation(fields: [cardId], references: [id])
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([accountId, status])
+  @@index([cardId])
+}
+
+// ----------------------------------------------------------------------------
+// Cards (PCI-aware: no real PAN ever stored)
+// ----------------------------------------------------------------------------
+
+model Card {
+  id          String     @id @default(uuid())
+  userId      String
+  accountId   String
+  type        CardType   @default(VIRTUAL_DEBIT)
+  status      CardStatus @default(ACTIVE)
+  // Display only. last4 + a network token reference. The real PAN is never
+  // generated, stored, or logged (see SECURITY.md / PCI principles).
+  last4       String
+  brand       String     @default("NEO")
+  tokenRef    String     @unique // placeholder for a network token (e.g. VTS/MDES)
+  expMonth    Int
+  expYear     Int
+  cardholderName String
+  onlinePaymentsEnabled Boolean @default(true)
+  atmEnabled  Boolean    @default(true)
+  contactlessEnabled Boolean @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         Account          @relation(fields: [accountId], references: [id])
+  limit           CardLimit?
+  merchantControls MerchantControl[]
+  holds           Hold[]
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([status])
+}
+
+model CardLimit {
+  id              String   @id @default(uuid())
+  cardId          String   @unique
+  // All in minor units of the card's account currency.
+  dailyLimit      BigInt   @default(0)
+  monthlyLimit    BigInt   @default(0)
+  perTxLimit      BigInt   @default(0)
+  atmDailyLimit   BigInt   @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model MerchantControl {
+  id        String   @id @default(uuid())
+  cardId    String
+  mcc       String // merchant category code or category key
+  label     String
+  blocked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, mcc])
+  @@index([cardId])
+}
+
+// ----------------------------------------------------------------------------
+// Sessions, devices, security
+// ----------------------------------------------------------------------------
+
+model DeviceSession {
+  id           String    @id @default(uuid())
+  userId       String
+  // Opaque hash of the session token (never store the raw token).
+  tokenHash    String    @unique
+  deviceName   String?
+  userAgent    String?
+  ipAddress    String?
+  trusted      Boolean   @default(false)
+  lastSeenAt   DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model LoginEvent {
+  id         String   @id @default(uuid())
+  userId     String?
+  email      String?
+  success    Boolean
+  reason     String?
+  ipAddress  String?
+  userAgent  String?
+  suspicious Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([email])
+  @@index([success])
+}
+
+model WebAuthnCredential {
+  id            String   @id @default(uuid())
+  userId        String
+  // Passkey-ready placeholder. Real WebAuthn requires credentialId/publicKey
+  // and a verification ceremony — wired via an adapter (see SECURITY.md).
+  credentialId  String   @unique
+  publicKey     String?
+  counter       Int      @default(0)
+  deviceLabel   String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model OtpChallenge {
+  id         String     @id @default(uuid())
+  userId     String?
+  email      String
+  purpose    OtpPurpose
+  // Only the hash of the OTP is stored.
+  codeHash   String
+  attempts   Int        @default(0)
+  consumedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+// ----------------------------------------------------------------------------
+// Audit & notifications
+// ----------------------------------------------------------------------------
+
+model AuditLog {
+  id         String         @id @default(uuid())
+  actorType  AuditActorType
+  actorId    String? // userId or adminUserId
+  action     String // e.g. "transfer.create", "kyc.approve"
+  entity     String // e.g. "Transaction"
+  entityId   String?
+  // Hash-chained for tamper-evidence: hash(prevHash + canonical(payload)).
+  prevHash   String?
+  hash       String?
+  ipAddress  String?
+  userAgent  String?
+  before     Json?
+  after      Json?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+
+  @@index([actorType, actorId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// Budgets, categories, savings
+// ----------------------------------------------------------------------------
+
+model SpendingCategory {
+  id        String   @id @default(uuid())
+  key       String   @unique // e.g. "groceries"
+  label     String
+  icon      String?
+  color     String?
+  mccPrefixes String[] // MCCs that map to this category
+  createdAt DateTime @default(now())
+
+  budgets   Budget[]
+}
+
+model Budget {
+  id         String   @id @default(uuid())
+  userId     String
+  categoryId String?
+  name       String
+  currency   Currency
+  limitAmount BigInt // minor units
+  period     String   @default("MONTHLY") // MONTHLY / WEEKLY
+  spentCached BigInt  @default(0)
+  startsOn   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category SpendingCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([userId])
+}
+
+model SavingsGoal {
+  id            String            @id @default(uuid())
+  userId        String
+  name          String
+  currency      Currency
+  targetAmount  BigInt
+  currentAmount BigInt            @default(0)
+  status        SavingsGoalStatus @default(ACTIVE)
+  // Auto-save rules (sandbox): round-up, recurring, percentage.
+  autoSaveRule  Json?
+  targetDate    DateTime?
+  color         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ----------------------------------------------------------------------------
+// AI assistant
+// ----------------------------------------------------------------------------
+
+model AiConversation {
+  id        String      @id @default(uuid())
+  userId    String
+  // For admin compliance conversations, scope is ADMIN.
+  scope     String      @default("CUSTOMER") // CUSTOMER | ADMIN
+  title     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AiMessage[]
+
+  @@index([userId])
+}
+
+model AiMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           AiRole
+  content        String
+  // Which mock skill produced this + any structured grounding used.
+  toolUsed       String?
+  grounding      Json?
+  createdAt      DateTime @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// Risk & AML
+// ----------------------------------------------------------------------------
+
+model RiskScore {
+  id        String    @id @default(uuid())
+  userId    String
+  score     Int // 0-100
+  level     RiskLevel
+  factors   Json // array of contributing factors
+  current   Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, current])
+}
+
+model AmlAlert {
+  id            String      @id @default(uuid())
+  userId        String
+  transactionId String?
+  ruleCode      AmlRuleCode
+  level         RiskLevel
+  status        AlertStatus @default(OPEN)
+  reason        String
+  details       Json?
+  assignedTo    String? // AdminUser id
+  adminNotes    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+  assignee    AdminUser?   @relation(fields: [assignedTo], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([level])
+  @@index([ruleCode])
+}
+
+model SanctionsScreeningResult {
+  id          String           @id @default(uuid())
+  userId      String
+  // Sandbox screening only. A real deployment must use a licensed sanctions /
+  // PEP screening provider (see COMPLIANCE.md). No real lists are bundled.
+  query       String
+  outcome     SanctionsOutcome @default(CLEAR)
+  matchedList String? // e.g. "SANDBOX-DEMO-LIST"
+  score       Int              @default(0)
+  details     Json?
+  createdAt   DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([outcome])
+}
+
+// ----------------------------------------------------------------------------
+// Admin / RBAC
+// ----------------------------------------------------------------------------
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String?
+  firstName    String
+  lastName     String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  roles            AdminUserRole[]
+  reviewedKyc      KycApplication[]
+  assignedAlerts   AmlAlert[]
+  auditedDisputes  Dispute[]
+
+  @@index([active])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  key         String   @unique // e.g. "compliance_officer"
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  permissions RolePermission[]
+  admins      AdminUserRole[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique // e.g. "kyc.review"
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model AdminUserRole {
+  adminUserId String
+  roleId      String
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([adminUserId, roleId])
+}
+
+// ----------------------------------------------------------------------------
+// Disputes, fees, FX, webhooks, idempotency
+// ----------------------------------------------------------------------------
+
+model Dispute {
+  id            String        @id @default(uuid())
+  userId        String
+  transactionId String
+  reason        String
+  status        DisputeStatus @default(OPEN)
+  amount        BigInt
+  currency      Currency
+  resolution    String?
+  handledBy     String? // AdminUser id
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  handler     AdminUser?  @relation(fields: [handledBy], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+model FeeRule {
+  id          String          @id @default(uuid())
+  key         String          @unique // e.g. "fx.spread", "transfer.bank"
+  description String
+  type        TransactionType
+  // Fee = flatAmount + (amount * bps / 10000), in minor units.
+  flatAmount  BigInt          @default(0)
+  bps         Int             @default(0) // basis points
+  currency    Currency?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model FxRate {
+  id           String   @id @default(uuid())
+  baseCurrency Currency
+  quoteCurrency Currency
+  // Rate scaled by 1e8 to keep integer precision (no floats on the wire).
+  rateScaled   BigInt
+  scale        Int      @default(100000000)
+  // Spread applied on conversions, in basis points.
+  spreadBps    Int      @default(50)
+  source       String   @default("SANDBOX")
+  asOf         DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@unique([baseCurrency, quoteCurrency, asOf])
+  @@index([baseCurrency, quoteCurrency])
+}
+
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  source      String // e.g. "card_scheme", "internal"
+  eventType   String
+  payload     Json
+  // Idempotent processing: unique external id.
+  externalId  String?   @unique
+  processedAt DateTime?
+  status      String    @default("RECEIVED") // RECEIVED | PROCESSED | FAILED
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@index([eventType])
+  @@index([status])
+}
+
+model IdempotencyKey {
+  id            String   @id @default(uuid())
+  key           String
+  userId        String?
+  endpoint      String
+  // Hash of the request body to detect key reuse with a different payload.
+  requestHash   String
+  status        String   @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED
+  responseCode  Int?
+  responseBody  Json?
+  transactionId String?
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@unique([key, endpoint])
+  @@index([expiresAt])
+}

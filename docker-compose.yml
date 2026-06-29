@@ -1,0 +1,51 @@
+# =============================================================================
+# NEO BANK OS 2026 — local sandbox stack
+# This runs a LOCAL Postgres + the Next.js app. No real services.
+# =============================================================================
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: neobank-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: neobank
+      POSTGRES_PASSWORD: neobank
+      POSTGRES_DB: neobank
+    ports:
+      - "5432:5432"
+    volumes:
+      - neobank_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neobank -d neobank"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: neobank-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://neobank:neobank@db:5432/neobank?schema=public"
+      NODE_ENV: "production"
+      APP_URL: "http://localhost:3000"
+      SESSION_SECRET: "dev-only-change-me-please-32-bytes-minimum-aaaaaaaaaaaaaaaaaaaa"
+      SESSION_TTL_HOURS: "12"
+      OTP_PROVIDER: "mock"
+      AI_PROVIDER: "mock"
+      SEED_DEMO_DATA: "true"
+    ports:
+      - "3000:3000"
+    # On first boot run migrations + seed, then start the server.
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             npx tsx prisma/seed.ts &&
+             node server.js"
+
+volumes:
+  neobank_pgdata:
