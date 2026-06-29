@@ -132,18 +132,25 @@ function StatusBanner({ status, onRefresh, refreshing }: { status: KycStatus; on
   };
   const c = config[status];
   return (
-    <div className={`flex items-start justify-between gap-4 rounded-xl border p-4 ${c.tone}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className={`flex items-start justify-between gap-4 rounded-2xl border p-4 backdrop-blur-xl ${c.tone}`}
+    >
       <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-background/60 p-2">{c.icon}</div>
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-background/70 ring-1 ring-white/10">
+          {c.icon}
+        </div>
         <div>
-          <div className="text-sm font-semibold">{c.title}</div>
+          <div className="font-display text-sm font-semibold">{c.title}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">{c.body}</p>
         </div>
       </div>
       <Button variant="ghost" size="sm" onClick={onRefresh} disabled={refreshing} aria-label="Refresh status">
         <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
       </Button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -160,17 +167,20 @@ function Stepper({ current }: { current: number }) {
           return (
             <React.Fragment key={s.key}>
               <div className="flex flex-col items-center gap-1.5">
-                <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+                <motion.div
+                  initial={false}
+                  animate={active ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
                     done
-                      ? "border-success bg-success/15 text-success"
+                      ? "border-brand-emerald/50 bg-brand-emerald/15 text-brand-emerald"
                       : active
-                        ? "border-primary bg-primary/15 text-primary"
+                        ? "border-transparent bg-brand-gradient text-white shadow-glow"
                         : "border-border/60 bg-muted text-muted-foreground"
                   }`}
                 >
                   {done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                </div>
+                </motion.div>
                 <span
                   className={`hidden text-[11px] sm:block ${
                     active ? "font-medium text-foreground" : "text-muted-foreground"
@@ -180,9 +190,14 @@ function Stepper({ current }: { current: number }) {
                 </span>
               </div>
               {i < STEPS.length - 1 && (
-                <div
-                  className={`mx-1 h-0.5 flex-1 rounded-full ${i < current ? "bg-success" : "bg-border/60"}`}
-                />
+                <div className="mx-1 h-0.5 flex-1 overflow-hidden rounded-full bg-border/60">
+                  <motion.div
+                    className="h-full rounded-full bg-brand-gradient"
+                    initial={false}
+                    animate={{ width: i < current ? "100%" : "0%" }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  />
+                </div>
               )}
             </React.Fragment>
           );
@@ -369,7 +384,7 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
       <StatusBanner status={status} onRefresh={refreshStatus} refreshing={refreshing} />
 
       {/* Trust strip */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border/60 bg-card/40 px-4 py-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border/60 bg-card/40 px-4 py-3 text-xs text-muted-foreground backdrop-blur-xl">
         <span className="inline-flex items-center gap-1.5">
           <Lock className="h-3.5 w-3.5 text-success" /> Bank-grade encryption
         </span>

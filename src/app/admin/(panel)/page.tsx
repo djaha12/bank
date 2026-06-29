@@ -166,10 +166,14 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Compliance Operations"
+        title={
+          <>
+            Compliance <span className="text-gradient">Operations</span>
+          </>
+        }
         description="Live overview of customers, identity verification, financial-crime alerts and ledger health."
         actions={
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="gradient" size="sm">
             <Link href="/admin/aml">
               <Siren className="h-4 w-4" /> AML queue
             </Link>
@@ -179,25 +183,32 @@ export default async function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
+          accent="blue"
+          index={0}
           label="Total customers"
           value={totalCustomers.toLocaleString()}
           hint={`${activeCustomers.toLocaleString()} active`}
-          icon={<Users className="h-4 w-4 text-primary" />}
+          icon={<Users className="h-4 w-4" />}
         />
         <StatCard
+          accent="cyan"
+          index={1}
           label="Pending KYC"
           value={(pendingKyc + inReviewKyc).toLocaleString()}
           hint={`${pendingKyc} new · ${inReviewKyc} in review`}
-          icon={<FileCheck2 className="h-4 w-4 text-warning" />}
+          icon={<FileCheck2 className="h-4 w-4" />}
         />
         <StatCard
+          accent="violet"
+          index={2}
           label="Open AML alerts"
           value={openAlerts.toLocaleString()}
           hint={`${criticalAlerts} high / critical`}
-          icon={<Siren className="h-4 w-4 text-destructive" />}
+          icon={<Siren className="h-4 w-4" />}
         />
         <StatCard
           premium
+          index={3}
           label="Ledger volume"
           value={
             primaryVolume ? (
@@ -217,14 +228,16 @@ export default async function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Compliance overview */}
-        <Card className="lg:col-span-2">
+        <Card className="glass-card lift lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Compliance overview</CardTitle>
+                <CardTitle className="font-display text-lg">Compliance overview</CardTitle>
                 <CardDescription>KYC coverage and risk posture across the book.</CardDescription>
               </div>
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
+                <TrendingUp className="h-4 w-4" />
+              </span>
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -249,11 +262,14 @@ export default async function AdminDashboardPage() {
               {[
                 { label: "Approved", value: approvedCustomers, tone: "text-success" },
                 { label: "Awaiting review", value: pendingKyc + inReviewKyc, tone: "text-warning" },
-                { label: "Open alerts", value: openAlerts, tone: "text-destructive" },
+                { label: "Open alerts", value: openAlerts, tone: "text-brand-violet" },
                 { label: "Critical", value: criticalAlerts, tone: "text-destructive" },
               ].map((s) => (
-                <div key={s.label} className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                  <div className={`text-2xl font-semibold tabular-nums ${s.tone}`}>
+                <div
+                  key={s.label}
+                  className="rounded-2xl border border-border/60 bg-muted/30 p-4 transition-colors hover:border-border hover:bg-muted/50"
+                >
+                  <div className={`font-display text-2xl font-semibold tabular-nums ${s.tone}`}>
                     {s.value.toLocaleString()}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">{s.label}</div>
@@ -262,21 +278,23 @@ export default async function AdminDashboardPage() {
             </div>
 
             {volumeByCurrency.length > 0 && (
-              <div className="space-y-2 rounded-xl border border-border/60 p-4">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="space-y-2 rounded-2xl border border-border/60 p-4">
+                <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Ledger volume by currency
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {volumeByCurrency.map((v) => (
                     <div
                       key={v.currency}
-                      className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2"
+                      className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2 ring-1 ring-inset ring-border/40 transition-colors hover:bg-muted/60"
                     >
-                      <span className="text-sm text-muted-foreground">{v.currency}</span>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {v.currency}
+                      </span>
                       <MoneyText
                         amount={v.amount}
                         currency={v.currency}
-                        className="text-sm font-medium"
+                        className="text-sm font-semibold"
                       />
                     </div>
                   ))}
@@ -287,14 +305,16 @@ export default async function AdminDashboardPage() {
         </Card>
 
         {/* System health */}
-        <Card>
+        <Card className="glass-card ring-glow lift">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>System health</CardTitle>
+                <CardTitle className="font-display text-lg">System health</CardTitle>
                 <CardDescription>Sandbox infrastructure status.</CardDescription>
               </div>
-              <Activity className="h-5 w-5 text-success" />
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-success/30 to-success/5 text-success ring-1 ring-white/10">
+                <Activity className="h-4 w-4" />
+              </span>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -331,10 +351,15 @@ export default async function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent AML alerts */}
-        <Card>
+        <Card className="glass-card lift">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Recent AML alerts</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-display text-lg">
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                  <Siren className="h-4 w-4" />
+                </span>
+                Recent AML alerts
+              </CardTitle>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/admin/aml">
                   View all <ArrowUpRight className="h-4 w-4" />
@@ -363,17 +388,17 @@ export default async function AdminDashboardPage() {
                       ? `${a.user.profile.firstName} ${a.user.profile.lastName}`
                       : a.user.email;
                     return (
-                      <TableRow key={a.id}>
+                      <TableRow key={a.id} className="transition-colors hover:bg-muted/40">
                         <TableCell>
                           <Link
                             href={`/admin/customers/${a.userId}`}
-                            className="font-medium hover:text-primary"
+                            className="font-medium transition-colors hover:text-primary"
                           >
                             {name}
                           </Link>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="font-mono text-xs text-muted-foreground">
                             {a.ruleCode.replaceAll("_", " ")}
                           </span>
                         </TableCell>
@@ -393,10 +418,15 @@ export default async function AdminDashboardPage() {
         </Card>
 
         {/* KYC queue */}
-        <Card>
+        <Card className="glass-card lift">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>KYC review queue</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-display text-lg">
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan ring-1 ring-white/10">
+                  <FileCheck2 className="h-4 w-4" />
+                </span>
+                KYC review queue
+              </CardTitle>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/admin/kyc">
                   View all <ArrowUpRight className="h-4 w-4" />
@@ -428,9 +458,12 @@ export default async function AdminDashboardPage() {
                       ? `${k.user.profile.firstName} ${k.user.profile.lastName}`
                       : k.user.email;
                     return (
-                      <TableRow key={k.id}>
+                      <TableRow key={k.id} className="transition-colors hover:bg-muted/40">
                         <TableCell>
-                          <Link href="/admin/kyc" className="font-medium hover:text-primary">
+                          <Link
+                            href="/admin/kyc"
+                            className="font-medium transition-colors hover:text-primary"
+                          >
                             {name}
                           </Link>
                           <div className="text-xs text-muted-foreground">{k.user.email}</div>
@@ -468,16 +501,14 @@ function HealthRow({
   detail: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
       <div className="flex items-center gap-2.5">
         <span className={ok ? "text-success" : "text-destructive"}>{icon}</span>
         <span className="text-sm font-medium">{label}</span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <span className="text-xs text-muted-foreground">{detail}</span>
-        <span
-          className={`h-2 w-2 rounded-full ${ok ? "bg-success shadow-glow" : "bg-destructive"}`}
-        />
+        <span className={`dot ${ok ? "text-success animate-glow-pulse" : "text-destructive"}`} />
       </div>
     </div>
   );
@@ -485,9 +516,9 @@ function HealthRow({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-muted/30 p-2.5 text-center">
-      <div className="text-base font-semibold tabular-nums">{value}</div>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+    <div className="rounded-xl bg-muted/30 p-2.5 text-center ring-1 ring-inset ring-border/40 transition-colors hover:bg-muted/50">
+      <div className="font-display text-base font-semibold tabular-nums">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );
 }

@@ -68,12 +68,16 @@ export default async function AdminCustomersPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Customers"
+        title={
+          <>
+            Customer <span className="text-gradient">book</span>
+          </>
+        }
         description="Search and manage every customer in the sandbox book."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            {total.toLocaleString()} total
+          <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur">
+            <Users className="h-4 w-4 text-brand-violet" />
+            <span className="tabular-nums text-foreground">{total.toLocaleString()}</span> total
           </span>
         }
       />

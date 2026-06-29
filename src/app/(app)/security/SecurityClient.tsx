@@ -79,16 +79,15 @@ function deviceIcon(ua: string | null) {
   return Monitor;
 }
 
-function scoreTone(score: number): { label: string; ring: string; text: string; badge: "success" | "warning" | "destructive" } {
-  if (score >= 80) return { label: "Strong", ring: "stroke-success", text: "text-success", badge: "success" };
-  if (score >= 55) return { label: "Good", ring: "stroke-primary", text: "text-primary", badge: "warning" };
-  return { label: "Needs attention", ring: "stroke-destructive", text: "text-destructive", badge: "destructive" };
+function scoreTone(score: number): { label: string; badge: "success" | "warning" | "destructive" } {
+  if (score >= 80) return { label: "Strong", badge: "success" };
+  if (score >= 55) return { label: "Good", badge: "warning" };
+  return { label: "Needs attention", badge: "destructive" };
 }
 
 // --- Score ring -------------------------------------------------------------
 
 function ScoreRing({ score }: { score: number }) {
-  const tone = scoreTone(score);
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - score / 100);
@@ -104,14 +103,7 @@ function ScoreRing({ score }: { score: number }) {
             <stop offset="100%" stopColor="hsl(var(--brand-cyan))" />
           </linearGradient>
         </defs>
-        <circle
-          cx="64"
-          cy="64"
-          r={radius}
-          fill="none"
-          strokeWidth="10"
-          className="stroke-white/10"
-        />
+        <circle cx="64" cy="64" r={radius} fill="none" strokeWidth="10" className="stroke-white/10" />
         <motion.circle
           cx="64"
           cy="64"
@@ -210,7 +202,7 @@ export function SecurityClient({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-display text-white">
                 <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15">
-                  <ShieldCheck className="h-4.5 w-4.5" />
+                  <ShieldCheck className="h-4 w-4" />
                 </span>
                 Security score
               </CardTitle>
@@ -337,10 +329,13 @@ export function SecurityClient({
         <TabsContent value="devices" className="space-y-6">
           {/* Trusted devices spotlight */}
           {trustedDevices.length > 0 && (
-            <Card>
+            <Card className="ring-glow">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BadgeCheck className="h-5 w-5 text-success" /> Trusted devices
+                <CardTitle className="flex items-center gap-2 font-display text-base">
+                  <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
+                    <BadgeCheck className="h-4 w-4" />
+                  </span>
+                  Trusted devices
                 </CardTitle>
                 <CardDescription>
                   These devices skip extra verification. Remove trust if one is lost or shared.
@@ -352,12 +347,17 @@ export function SecurityClient({
                   return (
                     <div
                       key={d.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-success/30 bg-success/5 p-3"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-success/30 bg-success/[0.06] p-3.5 transition-colors hover:bg-success/10"
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className="h-4 w-4 text-success" />
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-success/15 text-success ring-1 ring-success/20">
+                          <Icon className="h-4 w-4" />
+                        </span>
                         <div>
-                          <div className="text-sm font-medium">{d.deviceName}</div>
+                          <div className="flex items-center gap-1.5 text-sm font-medium">
+                            <span className="dot text-brand-emerald" />
+                            {d.deviceName}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             Last active {relativeTime(d.lastSeen)}
                           </div>
@@ -400,7 +400,7 @@ export function SecurityClient({
                     >
                       <div className="flex items-center gap-3">
                         <div className="relative grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand-blue/20 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
-                          <Icon className="h-4.5 w-4.5" />
+                          <Icon className="h-4 w-4" />
                           {d.current && (
                             <span className="dot absolute -right-0.5 -top-0.5 text-brand-emerald" />
                           )}
@@ -445,9 +445,9 @@ export function SecurityClient({
         </TabsContent>
 
         <TabsContent value="history">
-          <Card>
+          <Card className="ring-glow">
             <CardHeader>
-              <CardTitle className="text-base">Recent sign-in activity</CardTitle>
+              <CardTitle className="font-display text-base">Recent sign-in activity</CardTitle>
               <CardDescription>
                 We keep a record of every attempt. Spot something you don&apos;t recognise? Change your password.
               </CardDescription>
@@ -471,7 +471,10 @@ export function SecurityClient({
                   </TableHeader>
                   <TableBody>
                     {loginEvents.map((e) => (
-                      <TableRow key={e.id} className={e.suspicious ? "bg-warning/5" : undefined}>
+                      <TableRow
+                        key={e.id}
+                        className={`transition-colors hover:bg-muted/40 ${e.suspicious ? "bg-warning/5" : ""}`}
+                      >
                         <TableCell>
                           {e.success ? (
                             <span className="inline-flex items-center gap-1.5 text-sm text-success">
@@ -513,4 +516,3 @@ export function SecurityClient({
     </div>
   );
 }
-

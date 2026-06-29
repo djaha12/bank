@@ -141,16 +141,20 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 120, damping: 18 }}
       >
-        <Card className="overflow-hidden">
-          <div className="bg-brand-gradient h-20 w-full" />
-          <CardContent className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <Card className="ring-glow overflow-hidden">
+          <div className="shine relative h-28 w-full bg-brand-gradient bg-[length:200%_200%]">
+            <div className="bg-grid absolute inset-0 opacity-30" />
+          </div>
+          <CardContent className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
-              <Avatar className="h-20 w-20 border-4 border-card shadow-card">
-                <AvatarFallback className="text-xl">{initials.toUpperCase()}</AvatarFallback>
+              <Avatar className="h-24 w-24 border-4 border-card shadow-glow ring-1 ring-white/10">
+                <AvatarFallback className="bg-brand-gradient text-2xl font-semibold text-white">
+                  {initials.toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div className="pb-1">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold">{fullName}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-display text-2xl font-semibold tracking-tight">{fullName}</h2>
                   {kycBadge(profile.kycStatus)}
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -173,10 +177,13 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Personal data */}
-        <Card>
+        <Card className="ring-glow lift">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <IdCard className="h-5 w-5 text-muted-foreground" /> Personal information
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                <IdCard className="h-4 w-4" />
+              </span>
+              Personal information
             </CardTitle>
             <CardDescription>The details we hold for your identity record.</CardDescription>
           </CardHeader>
@@ -232,10 +239,13 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
 
         {/* Address + KYC */}
         <div className="space-y-6">
-          <Card>
+          <Card className="ring-glow lift">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MapPin className="h-5 w-5 text-muted-foreground" /> Residential address
+              <CardTitle className="flex items-center gap-2 font-display text-base">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan ring-1 ring-white/10">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                Residential address
               </CardTitle>
               <CardDescription>Where you live. Used for compliance and statements.</CardDescription>
             </CardHeader>
@@ -256,10 +266,13 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="ring-glow lift">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ShieldCheck className="h-5 w-5 text-muted-foreground" /> Identity verification
+              <CardTitle className="flex items-center gap-2 font-display text-base">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
+                  <ShieldCheck className="h-4 w-4" />
+                </span>
+                Identity verification
               </CardTitle>
               <CardDescription>Your KYC standing with the bank.</CardDescription>
             </CardHeader>
@@ -275,7 +288,7 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
               <div className="flex flex-col items-end gap-2">
                 {kycBadge(profile.kycStatus)}
                 {profile.kycStatus !== KycStatus.APPROVED && (
-                  <Button asChild variant="outline" size="sm">
+                  <Button asChild variant="gradient" size="sm">
                     <a href="/kyc">Go to verification</a>
                   </Button>
                 )}
@@ -286,10 +299,13 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
       </div>
 
       {/* Privacy & consent */}
-      <Card>
+      <Card className="ring-glow lift">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Database className="h-5 w-5 text-muted-foreground" /> Privacy &amp; consent
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-blue/30 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
+              <Database className="h-4 w-4" />
+            </span>
+            Privacy &amp; consent
           </CardTitle>
           <CardDescription>
             Decide how we use your data. Changes apply instantly (sandbox — stored locally).
@@ -371,9 +387,11 @@ function ConsentRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 p-4">
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 transition-colors hover:border-brand-violet/30 hover:bg-card/70">
       <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-muted p-2">{icon}</div>
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/80 text-muted-foreground ring-1 ring-white/5">
+          {icon}
+        </div>
         <div>
           <div className="text-sm font-medium">{title}</div>
           <p className="text-xs text-muted-foreground">{description}</p>

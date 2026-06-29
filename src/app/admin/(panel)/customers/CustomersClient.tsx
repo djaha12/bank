@@ -179,8 +179,8 @@ export function CustomersClient({
   const to = Math.min(page * pageSize, count);
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-col gap-3 border-b border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="glass-card overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -194,7 +194,7 @@ export function CustomersClient({
             <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
           )}
         </div>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm font-medium tabular-nums text-muted-foreground">
           {searched
             ? `${count.toLocaleString()} match${count === 1 ? "" : "es"}`
             : `Showing ${from}–${to} of ${count.toLocaleString()}`}

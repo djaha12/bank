@@ -54,12 +54,16 @@ export default async function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Profile"
+        title={
+          <>
+            Your <span className="text-gradient">profile</span>
+          </>
+        }
         description="Manage your personal details, address and privacy preferences."
         actions={
-          <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground sm:flex">
+          <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur sm:flex">
             <UserRound className="h-4 w-4 text-primary" />
             Your data, your control
           </div>

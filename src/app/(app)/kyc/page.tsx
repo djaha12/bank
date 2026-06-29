@@ -33,7 +33,11 @@ export default async function KycPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Identity verification"
+        title={
+          <>
+            Identity <span className="text-gradient">verification</span>
+          </>
+        }
         description="A few quick steps to unlock transfers, cards and higher limits. Your data is handled with care."
       />
       <KycClient prefill={prefill} initialStatus={user.kycStatus} />
