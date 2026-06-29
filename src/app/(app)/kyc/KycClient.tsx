@@ -25,11 +25,8 @@ import {
 import { KycStatus } from "@prisma/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -94,38 +91,63 @@ const STEPS = [
 
 // --- Status banner ----------------------------------------------------------
 
-function StatusBanner({ status, onRefresh, refreshing }: { status: KycStatus; onRefresh: () => void; refreshing: boolean }) {
+function StatusBanner({
+  status,
+  onRefresh,
+  refreshing,
+}: {
+  status: KycStatus;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   const config: Record<
     KycStatus,
-    { tone: string; icon: React.ReactNode; title: string; body: string }
+    {
+      ring: string;
+      wash: string;
+      chip: string;
+      icon: React.ReactNode;
+      title: string;
+      body: string;
+    }
   > = {
     NOT_STARTED: {
-      tone: "border-border/60 bg-card/60",
-      icon: <Sparkles className="h-5 w-5 text-primary" />,
+      ring: "border-border/60",
+      wash: "from-brand-violet/15",
+      chip: "bg-primary/15 text-primary ring-primary/20",
+      icon: <Sparkles className="h-5 w-5" />,
       title: "Let's verify your identity",
       body: "Complete the steps below to activate your account. It takes about 3 minutes.",
     },
     PENDING: {
-      tone: "border-warning/30 bg-warning/5",
-      icon: <Clock className="h-5 w-5 text-warning" />,
+      ring: "border-warning/30",
+      wash: "from-warning/15",
+      chip: "bg-warning/15 text-warning ring-warning/25",
+      icon: <Clock className="h-5 w-5" />,
       title: "Verification in progress",
       body: "You've started verification. Finish the remaining steps and submit when ready.",
     },
     IN_REVIEW: {
-      tone: "border-primary/30 bg-primary/5",
-      icon: <Search className="h-5 w-5 text-primary" />,
+      ring: "border-primary/30",
+      wash: "from-brand-cyan/15",
+      chip: "bg-primary/15 text-primary ring-primary/20",
+      icon: <Search className="h-5 w-5" />,
       title: "Under review",
       body: "Thanks — your documents are with our team. We'll notify you once a decision is made.",
     },
     APPROVED: {
-      tone: "border-success/30 bg-success/5",
-      icon: <CheckCircle2 className="h-5 w-5 text-success" />,
+      ring: "border-success/30",
+      wash: "from-brand-emerald/20",
+      chip: "bg-success/15 text-success ring-success/25",
+      icon: <CheckCircle2 className="h-5 w-5" />,
       title: "You're verified",
       body: "Your identity is confirmed. You can now move money, open cards and access higher limits.",
     },
     REJECTED: {
-      tone: "border-destructive/30 bg-destructive/5",
-      icon: <XCircle className="h-5 w-5 text-destructive" />,
+      ring: "border-destructive/30",
+      wash: "from-destructive/15",
+      chip: "bg-destructive/15 text-destructive ring-destructive/25",
+      icon: <XCircle className="h-5 w-5" />,
       title: "Verification needs attention",
       body: "We couldn't approve your last submission. Review your details and submit again.",
     },
@@ -133,21 +155,31 @@ function StatusBanner({ status, onRefresh, refreshing }: { status: KycStatus; on
   const c = config[status];
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className={`flex items-start justify-between gap-4 rounded-2xl border p-4 backdrop-blur-xl ${c.tone}`}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className={`glass-card relative flex items-start justify-between gap-4 overflow-hidden rounded-3xl border p-5 ${c.ring}`}
     >
-      <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-background/70 ring-1 ring-white/10">
+      <div
+        className={`pointer-events-none absolute -left-20 -top-20 h-52 w-52 rounded-full bg-gradient-to-br ${c.wash} to-transparent opacity-80 blur-2xl`}
+      />
+      <div className="relative flex items-start gap-3.5">
+        <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ring-1 ${c.chip}`}>
           {c.icon}
         </div>
         <div>
-          <div className="font-display text-sm font-semibold">{c.title}</div>
-          <p className="mt-0.5 text-xs text-muted-foreground">{c.body}</p>
+          <div className="font-display text-base font-semibold tracking-tight">{c.title}</div>
+          <p className="mt-0.5 max-w-xl text-sm text-muted-foreground">{c.body}</p>
         </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={onRefresh} disabled={refreshing} aria-label="Refresh status">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onRefresh}
+        disabled={refreshing}
+        aria-label="Refresh status"
+        className="relative shrink-0"
+      >
         <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
       </Button>
     </motion.div>
@@ -157,6 +189,7 @@ function StatusBanner({ status, onRefresh, refreshing }: { status: KycStatus; on
 // --- Stepper ----------------------------------------------------------------
 
 function Stepper({ current }: { current: number }) {
+  const pct = ((current + 1) / STEPS.length) * 100;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -167,20 +200,17 @@ function Stepper({ current }: { current: number }) {
           return (
             <React.Fragment key={s.key}>
               <div className="flex flex-col items-center gap-1.5">
-                <motion.div
-                  initial={false}
-                  animate={active ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                <div
+                  className={`grid h-10 w-10 place-items-center rounded-full border transition-all duration-300 ${
                     done
-                      ? "border-brand-emerald/50 bg-brand-emerald/15 text-brand-emerald"
+                      ? "border-success/40 bg-success/15 text-success"
                       : active
-                        ? "border-transparent bg-brand-gradient text-white shadow-glow"
+                        ? "border-primary/50 bg-primary/15 text-primary shadow-glow ring-1 ring-primary/20"
                         : "border-border/60 bg-muted text-muted-foreground"
                   }`}
                 >
                   {done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                </motion.div>
+                </div>
                 <span
                   className={`hidden text-[11px] sm:block ${
                     active ? "font-medium text-foreground" : "text-muted-foreground"
@@ -191,11 +221,11 @@ function Stepper({ current }: { current: number }) {
               </div>
               {i < STEPS.length - 1 && (
                 <div className="mx-1 h-0.5 flex-1 overflow-hidden rounded-full bg-border/60">
-                  <motion.div
-                    className="h-full rounded-full bg-brand-gradient"
-                    initial={false}
-                    animate={{ width: i < current ? "100%" : "0%" }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      i < current ? "bg-success" : "bg-transparent"
+                    }`}
+                    style={{ width: i < current ? "100%" : "0%" }}
                   />
                 </div>
               )}
@@ -203,7 +233,21 @@ function Stepper({ current }: { current: number }) {
           );
         })}
       </div>
-      <Progress value={((current + 1) / STEPS.length) * 100} />
+      {/* gradient progress rail */}
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted/70">
+        <motion.div
+          className="h-full rounded-full bg-brand-gradient"
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ type: "spring", stiffness: 120, damping: 22 }}
+        />
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>
+          Step {current + 1} of {STEPS.length}
+        </span>
+        <span className="tabular-nums">{Math.round(pct)}% complete</span>
+      </div>
     </div>
   );
 }
@@ -384,7 +428,7 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
       <StatusBanner status={status} onRefresh={refreshStatus} refreshing={refreshing} />
 
       {/* Trust strip */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border/60 bg-card/40 px-4 py-3 text-xs text-muted-foreground backdrop-blur-xl">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border/60 bg-card/40 px-4 py-3 text-xs text-muted-foreground backdrop-blur">
         <span className="inline-flex items-center gap-1.5">
           <Lock className="h-3.5 w-3.5 text-success" /> Bank-grade encryption
         </span>
@@ -397,15 +441,18 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
       </div>
 
       {!showWizard ? (
-        <Card className="ring-glow lift">
-          <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+        <div className="glass-card ring-glow lift relative overflow-hidden rounded-3xl">
+          <div className="bg-grid pointer-events-none absolute inset-0 opacity-30" />
+          <div className="relative flex flex-col items-center gap-4 px-6 py-14 text-center">
             {status === KycStatus.APPROVED ? (
               <>
-                <div className="animate-float grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
+                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-success/15 text-success ring-1 ring-success/25">
                   <CheckCircle2 className="h-8 w-8" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">You&apos;re fully verified</h3>
+                  <h3 className="font-display text-xl font-semibold tracking-tight">
+                    You&apos;re fully verified
+                  </h3>
                   <p className="mt-1 max-w-md text-sm text-muted-foreground">
                     Nothing more to do. Enjoy transfers, cards and higher limits.
                   </p>
@@ -416,11 +463,13 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
               </>
             ) : status === KycStatus.IN_REVIEW ? (
               <>
-                <div className="animate-float grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-brand-blue/30 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
+                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/20">
                   <Search className="h-8 w-8" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">We&apos;re reviewing your application</h3>
+                  <h3 className="font-display text-xl font-semibold tracking-tight">
+                    We&apos;re reviewing your application
+                  </h3>
                   <p className="mt-1 max-w-md text-sm text-muted-foreground">
                     This usually takes a moment in the sandbox. Tap refresh to check for updates.
                   </p>
@@ -431,9 +480,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
               </>
             ) : (
               <>
-                <div className="animate-float relative grid h-16 w-16 place-items-center rounded-2xl bg-brand-gradient text-white shadow-glow">
-                  <span className="absolute inset-0 rounded-2xl bg-brand-gradient opacity-40 blur-xl" />
-                  <ScanFace className="relative h-8 w-8" />
+                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                  <ScanFace className="h-8 w-8" />
                 </div>
                 <div>
                   <h3 className="font-display text-xl font-semibold tracking-tight">
@@ -444,19 +492,32 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
                     couple of compliance questions.
                   </p>
                 </div>
-                <Button variant="gradient" size="lg" onClick={start} disabled={refreshing}>
+                <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                  {STEPS.map((s) => {
+                    const Icon = s.icon;
+                    return (
+                      <span
+                        key={s.key}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] text-muted-foreground"
+                      >
+                        <Icon className="h-3 w-3 text-primary" /> {s.label}
+                      </span>
+                    );
+                  })}
+                </div>
+                <Button variant="gradient" size="lg" onClick={start} disabled={refreshing} className="mt-2">
                   {refreshing ? "Starting…" : "Start verification"} <ArrowRight className="h-4 w-4" />
                 </Button>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <Card className="ring-glow">
-          <CardHeader>
+        <div className="glass-card ring-glow relative overflow-hidden rounded-3xl">
+          <div className="border-b border-border/60 p-6">
             <Stepper current={step} />
-          </CardHeader>
-          <CardContent className="space-y-6">
+          </div>
+          <div className="space-y-6 p-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -468,7 +529,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
               >
                 {step === 0 && (
                   <StepShell
-                    icon={<UserRound className="h-5 w-5 text-primary" />}
+                    icon={<UserRound className="h-5 w-5" />}
+                    accent="violet"
                     title="Personal information"
                     description="Use your details exactly as they appear on your ID."
                   >
@@ -515,7 +577,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
 
                 {step === 1 && (
                   <StepShell
-                    icon={<FileText className="h-5 w-5 text-primary" />}
+                    icon={<FileText className="h-5 w-5" />}
+                    accent="cyan"
                     title="Upload a document"
                     description="Add one government ID. Files aren't really uploaded in the sandbox — we only record the name."
                   >
@@ -550,20 +613,42 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
 
                 {step === 2 && (
                   <StepShell
-                    icon={<ScanFace className="h-5 w-5 text-primary" />}
+                    icon={<ScanFace className="h-5 w-5" />}
+                    accent="violet"
                     title="Liveness check"
                     description="Position your face in the frame. This is a mock — no camera is accessed."
                   >
-                    <div className="flex flex-col items-center gap-4">
+                    <div className="flex flex-col items-center gap-5">
                       <div
-                        className={`relative flex h-56 w-56 items-center justify-center overflow-hidden rounded-full border-2 ${
+                        className={`relative grid h-60 w-60 place-items-center rounded-full border-2 transition-colors duration-300 ${
                           selfieCaptured
                             ? "border-success bg-success/5"
-                            : "border-dashed border-brand-violet/40 bg-muted/40"
+                            : "border-dashed border-primary/40 bg-muted/30"
                         }`}
                       >
-                        {/* animated framing ring */}
-                        <div className="absolute inset-3 animate-glow-pulse rounded-full border border-brand-violet/30" />
+                        {/* concentric framing rings */}
+                        <div className="pointer-events-none absolute inset-4 rounded-full border border-primary/25" />
+                        <div className="pointer-events-none absolute inset-8 rounded-full border border-primary/15" />
+                        {/* scanning sweep while idle */}
+                        {!selfieCaptured && (
+                          <motion.div
+                            className="pointer-events-none absolute inset-x-6 top-1/2 h-px bg-gradient-to-r from-transparent via-primary to-transparent"
+                            initial={{ y: -96, opacity: 0.2 }}
+                            animate={{ y: 96, opacity: [0.2, 0.9, 0.2] }}
+                            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                          />
+                        )}
+                        {/* corner brackets */}
+                        {(["left-5 top-5 border-l-2 border-t-2", "right-5 top-5 border-r-2 border-t-2", "left-5 bottom-5 border-l-2 border-b-2", "right-5 bottom-5 border-r-2 border-b-2"] as const).map(
+                          (pos) => (
+                            <span
+                              key={pos}
+                              className={`pointer-events-none absolute h-6 w-6 rounded-[3px] ${pos} ${
+                                selfieCaptured ? "border-success/60" : "border-primary/50"
+                              }`}
+                            />
+                          ),
+                        )}
                         {selfieCaptured ? (
                           <motion.div
                             initial={{ scale: 0.6, opacity: 0 }}
@@ -582,10 +667,7 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
                         )}
                       </div>
                       {selfieCaptured ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => setSelfieCaptured(false)}
-                        >
+                        <Button variant="outline" onClick={() => setSelfieCaptured(false)}>
                           <RefreshCw className="h-4 w-4" /> Retake
                         </Button>
                       ) : (
@@ -608,7 +690,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
 
                 {step === 3 && (
                   <StepShell
-                    icon={<MapPin className="h-5 w-5 text-primary" />}
+                    icon={<MapPin className="h-5 w-5" />}
+                    accent="cyan"
                     title="Residential address"
                     description="Where you currently live. Used for compliance and statements."
                   >
@@ -660,7 +743,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
 
                 {step === 4 && (
                   <StepShell
-                    icon={<Wallet className="h-5 w-5 text-primary" />}
+                    icon={<Wallet className="h-5 w-5" />}
+                    accent="emerald"
                     title="Source of funds & risk"
                     description="A few compliance questions. Honest answers keep your account safe."
                   >
@@ -731,7 +815,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
 
                 {step === 5 && (
                   <StepShell
-                    icon={<ClipboardCheck className="h-5 w-5 text-primary" />}
+                    icon={<ClipboardCheck className="h-5 w-5" />}
+                    accent="blue"
                     title="Review & submit"
                     description="Check everything looks right before you send it to our team."
                   >
@@ -753,6 +838,7 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
                         <ReviewRow
                           label="Liveness selfie"
                           value={selfieCaptured ? "Captured" : "Missing"}
+                          ok={selfieCaptured}
                         />
                       </ReviewGroup>
                       <ReviewGroup title="Address">
@@ -774,7 +860,7 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
                         />
                         <ReviewRow label="PEP declared" value={form.declaredPepStatus ? "Yes" : "No"} />
                       </ReviewGroup>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="rounded-2xl border border-border/60 bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
                         By submitting you confirm the information is accurate. Sandbox applications are
                         screened automatically and never use real documents.
                       </p>
@@ -799,8 +885,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -808,13 +894,24 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
 
 // --- Sub-components ----------------------------------------------------------
 
+type Accent = "violet" | "cyan" | "emerald" | "blue";
+
+const ACCENT_CHIP: Record<Accent, string> = {
+  violet: "from-brand-violet/30 to-brand-violet/5 text-brand-violet",
+  cyan: "from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan",
+  emerald: "from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald",
+  blue: "from-brand-blue/30 to-brand-blue/5 text-brand-blue",
+};
+
 function StepShell({
   icon,
+  accent,
   title,
   description,
   children,
 }: {
   icon: React.ReactNode;
+  accent: Accent;
   title: string;
   description: string;
   children: React.ReactNode;
@@ -822,9 +919,11 @@ function StepShell({
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/25 to-brand-violet/5 ring-1 ring-white/10">
+        <span
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br ring-1 ring-white/10 ${ACCENT_CHIP[accent]}`}
+        >
           {icon}
-        </div>
+        </span>
         <div>
           <h3 className="font-display text-base font-semibold tracking-tight">{title}</h3>
           <p className="text-sm text-muted-foreground">{description}</p>
@@ -868,19 +967,28 @@ function DocUpload({
   const inputId = `doc-${type}`;
   return (
     <div
-      className={`rounded-2xl border p-4 transition-all ${
-        fileName
-          ? "border-success/40 bg-success/[0.06]"
-          : "border-dashed border-border/60 hover:border-brand-violet/40 hover:bg-card/50"
+      className={`rounded-2xl border p-4 transition-colors ${
+        fileName ? "border-success/40 bg-success/[0.06]" : "border-dashed border-border/60 hover:border-primary/40"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">{label}</span>
+        <span className="inline-flex items-center gap-2 text-sm font-medium">
+          <span
+            className={`grid h-8 w-8 place-items-center rounded-lg ring-1 ${
+              fileName
+                ? "bg-success/15 text-success ring-success/25"
+                : "bg-muted text-muted-foreground ring-white/5"
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+          </span>
+          {label}
+        </span>
         {fileName && <CheckCircle2 className="h-4 w-4 text-success" />}
       </div>
       {fileName ? (
         <div className="mt-3 space-y-2">
-          <p className="truncate text-xs text-muted-foreground" title={fileName}>
+          <p className="truncate font-mono text-xs text-muted-foreground" title={fileName}>
             {fileName}
           </p>
           <Button variant="ghost" size="sm" onClick={() => onPick(null)}>
@@ -921,7 +1029,11 @@ function RiskToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 transition-colors hover:border-brand-violet/30">
+    <div
+      className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition-colors ${
+        checked ? "border-warning/30 bg-warning/[0.05]" : "border-border/60"
+      }`}
+    >
       <span className="text-sm">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
     </div>
@@ -931,7 +1043,7 @@ function RiskToggle({
 function ReviewGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
-      <div className="mb-2 font-display text-xs font-semibold uppercase tracking-wide text-brand-violet">
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </div>
       <dl className="space-y-1.5">{children}</dl>
@@ -939,11 +1051,19 @@ function ReviewGroup({ title, children }: { title: string; children: React.React
   );
 }
 
-function ReviewRow({ label, value }: { label: string; value: string }) {
+function ReviewRow({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+      <dd
+        className={`flex items-center gap-1.5 text-right font-medium ${
+          ok === false ? "text-destructive" : ok ? "text-success" : ""
+        }`}
+      >
+        {ok === true && <CheckCircle2 className="h-3.5 w-3.5" />}
+        {ok === false && <XCircle className="h-3.5 w-3.5" />}
+        {value}
+      </dd>
     </div>
   );
 }
