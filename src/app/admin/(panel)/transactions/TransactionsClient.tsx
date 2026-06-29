@@ -206,8 +206,8 @@ export function TransactionsClient({
   const to = Math.min(skip + pageSize, count);
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-col gap-3 border-b border-border/60 p-4 lg:flex-row lg:items-center lg:justify-between">
+    <Card className="glass-card overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -259,7 +259,7 @@ export function TransactionsClient({
             </SelectContent>
           </Select>
         </div>
-        <span className="shrink-0 text-sm text-muted-foreground">
+        <span className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
           {dirty
             ? `${count.toLocaleString()} match${count === 1 ? "" : "es"}`
             : `Showing ${from}–${to} of ${count.toLocaleString()}`}
@@ -298,7 +298,7 @@ export function TransactionsClient({
           </TableHeader>
           <TableBody>
             {rows.map((r) => (
-              <TableRow key={r.id}>
+              <TableRow key={r.id} className="group transition-colors hover:bg-muted/40">
                 <TableCell>
                   <span className="font-mono text-xs">{r.reference ?? r.id.slice(0, 8)}</span>
                   {r.description && (
@@ -346,8 +346,8 @@ export function TransactionsClient({
       )}
 
       {!dirty && pageCount > 1 && (
-        <div className="flex items-center justify-between border-t border-border/60 p-4">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 p-4">
+          <span className="text-sm font-medium tabular-nums text-muted-foreground">
             Page {page} of {pageCount}
           </span>
           <div className="flex items-center gap-2">

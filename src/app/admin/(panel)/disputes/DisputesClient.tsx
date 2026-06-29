@@ -159,8 +159,8 @@ export function DisputesClient({ rows }: { rows: DisputeRow[] }) {
         : "Mark investigating";
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-col gap-3 border-b border-border/60 p-4 sm:flex-row sm:items-center">
+    <Card className="glass-card overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -208,7 +208,7 @@ export function DisputesClient({ rows }: { rows: DisputeRow[] }) {
           </TableHeader>
           <TableBody>
             {filtered.map((d) => (
-              <TableRow key={d.id}>
+              <TableRow key={d.id} className="group transition-colors hover:bg-muted/40">
                 <TableCell className="text-sm">{d.userEmail ?? "—"}</TableCell>
                 <TableCell>
                   <span className="font-mono text-xs">{d.transactionRef ?? "—"}</span>

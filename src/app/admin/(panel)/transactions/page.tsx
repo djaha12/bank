@@ -59,48 +59,58 @@ export default async function AdminTransactionsPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Transactions"
+        title={
+          <>
+            Transaction <span className="text-gradient">ledger</span>
+          </>
+        }
         description="Every money movement on the sandbox ledger. Inspect ledger entries and flag completed transactions for reversal."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground">
-            <ReceiptText className="h-4 w-4" />
-            {total.toLocaleString()} total
+          <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur">
+            <ReceiptText className="h-4 w-4 text-brand-violet" />
+            <span className="tabular-nums text-foreground">{total.toLocaleString()}</span> total
           </span>
         }
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Completed" value={completed} icon={<CheckCircle2 className="h-4 w-4" />} tone="text-success" />
-        <Stat label="Pending" value={pending} icon={<Clock className="h-4 w-4" />} tone="text-warning" />
-        <Stat label="Failed" value={failed} icon={<XCircle className="h-4 w-4" />} tone="text-destructive" />
-        <Stat label="Reversed" value={reversed} icon={<RotateCcw className="h-4 w-4" />} tone="text-muted-foreground" />
+        <StatCard
+          label="Completed"
+          accent="emerald"
+          index={0}
+          value={<AnimatedNumber value={completed} />}
+          hint="settled"
+          icon={<CheckCircle2 className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Pending"
+          accent="cyan"
+          index={1}
+          value={<AnimatedNumber value={pending} />}
+          hint="in flight"
+          icon={<Clock className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Failed"
+          accent="violet"
+          index={2}
+          value={<AnimatedNumber value={failed} />}
+          hint="rejected"
+          icon={<XCircle className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Reversed"
+          accent="blue"
+          index={3}
+          value={<AnimatedNumber value={reversed} />}
+          hint="compensated"
+          icon={<RotateCcw className="h-4 w-4" />}
+        />
       </div>
 
       <TransactionsClient initialRows={initialRows} total={total} pageSize={PAGE_SIZE} />
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-card dark:shadow-card-dark">
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-        <span className={tone}>{icon}</span>
-      </div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">{value.toLocaleString()}</div>
     </div>
   );
 }

@@ -1,8 +1,10 @@
-import { Gavel, CheckCircle2 } from "lucide-react";
+import { Gavel, CheckCircle2, Clock, Search, XCircle } from "lucide-react";
 import { requirePageAdmin } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/brand/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatCard } from "@/components/brand/stat-card";
+import { AnimatedNumber } from "@/components/brand/animated-number";
 import { EmptyState } from "@/components/brand/states";
 import { DisputeStatus } from "@prisma/client";
 import { DisputesClient, type DisputeRow } from "./DisputesClient";
@@ -42,27 +44,59 @@ export default async function AdminDisputesPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Disputes"
+        title={
+          <>
+            Dispute <span className="text-gradient">desk</span>
+          </>
+        }
         description="Chargeback and transaction disputes. Resolve with an optional refund or reject with a reason."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-1.5 text-sm text-warning">
+          <span className="inline-flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-1.5 text-sm font-medium text-warning backdrop-blur">
             <Gavel className="h-4 w-4" />
-            {open + investigating} open
+            <span className="tabular-nums">{open + investigating}</span> open
           </span>
         }
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Open" value={open} tone="text-warning" />
-        <Stat label="Investigating" value={investigating} tone="text-primary" />
-        <Stat label="Resolved" value={resolved} tone="text-success" />
-        <Stat label="Rejected" value={rejected} tone="text-destructive" />
+        <StatCard
+          label="Open"
+          accent="cyan"
+          index={0}
+          value={<AnimatedNumber value={open} />}
+          hint="awaiting triage"
+          icon={<Gavel className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Investigating"
+          accent="violet"
+          index={1}
+          value={<AnimatedNumber value={investigating} />}
+          hint="in progress"
+          icon={<Search className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Resolved"
+          accent="emerald"
+          index={2}
+          value={<AnimatedNumber value={resolved} />}
+          hint="closed"
+          icon={<CheckCircle2 className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Rejected"
+          accent="blue"
+          index={3}
+          value={<AnimatedNumber value={rejected} />}
+          hint="declined"
+          icon={<XCircle className="h-4 w-4" />}
+        />
       </div>
 
       {rows.length === 0 ? (
-        <Card>
+        <Card className="glass-card">
           <CardContent className="py-4">
             <EmptyState
               title="No disputes"
@@ -74,17 +108,6 @@ export default async function AdminDisputesPage() {
       ) : (
         <DisputesClient rows={rows} />
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: number; tone: string }) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-card dark:shadow-card-dark">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`mt-2 text-2xl font-semibold tabular-nums ${tone}`}>
-        {value.toLocaleString()}
-      </div>
     </div>
   );
 }

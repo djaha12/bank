@@ -71,18 +71,22 @@ export default async function AdminAmlPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="AML Alerts"
+        title={
+          <>
+            AML <span className="text-gradient">alerts</span>
+          </>
+        }
         description="Financial-crime alerts grouped by severity. Triage, assign and close cases with full audit trail."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-sm text-destructive">
-            <Siren className="h-4 w-4" />
-            {open} open
+          <span className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive backdrop-blur">
+            <Siren className="h-4 w-4 animate-glow-pulse" />
+            <span className="tabular-nums">{open}</span> open
           </span>
         }
       />
 
       {views.length === 0 ? (
-        <Card>
+        <Card className="glass-card">
           <CardContent className="py-4">
             <EmptyState
               title="No alerts raised"

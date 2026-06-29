@@ -43,47 +43,50 @@ export default async function AdminCardsPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Card Operations"
+        title={
+          <>
+            Card <span className="text-gradient">operations</span>
+          </>
+        }
         description="Cards issued across every customer. Freeze and unfreeze are sandbox operations — no real PANs are ever stored."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground">
-            <CreditCard className="h-4 w-4" />
-            {total.toLocaleString()} cards
+          <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur">
+            <CreditCard className="h-4 w-4 text-brand-violet" />
+            <span className="tabular-nums text-foreground">{total.toLocaleString()}</span> cards
           </span>
         }
       />
 
-      <div className="grid grid-cols-3 gap-4">
-        <Stat label="Active" value={active} icon={<CheckCircle2 className="h-4 w-4" />} tone="text-success" />
-        <Stat label="Frozen" value={frozen} icon={<Snowflake className="h-4 w-4" />} tone="text-primary" />
-        <Stat label="Closed" value={closed} icon={<XCircle className="h-4 w-4" />} tone="text-muted-foreground" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Active"
+          accent="emerald"
+          index={0}
+          value={<AnimatedNumber value={active} />}
+          hint="live"
+          icon={<CheckCircle2 className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Frozen"
+          accent="cyan"
+          index={1}
+          value={<AnimatedNumber value={frozen} />}
+          hint="on hold"
+          icon={<Snowflake className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Closed"
+          accent="violet"
+          index={2}
+          value={<AnimatedNumber value={closed} />}
+          hint="terminated"
+          icon={<XCircle className="h-4 w-4" />}
+        />
       </div>
 
       <CardsClient rows={rows} />
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-card dark:shadow-card-dark">
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-        <span className={tone}>{icon}</span>
-      </div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">{value.toLocaleString()}</div>
     </div>
   );
 }
