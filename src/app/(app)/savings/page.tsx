@@ -66,13 +66,17 @@ export default async function SavingsPage() {
   const defaultCurrency: Currency = accountVMs[0]?.currency ?? "KGS";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Savings"
+        title={
+          <>
+            Smart <span className="text-gradient">savings</span>
+          </>
+        }
         description="Set goals, automate the saving, and watch your vaults grow."
         actions={
-          <span className="hidden items-center gap-2 text-sm text-muted-foreground sm:inline-flex">
-            <PiggyBank className="h-4 w-4 text-primary" />
+          <span className="hidden items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3.5 py-1.5 text-sm text-muted-foreground backdrop-blur sm:inline-flex">
+            <PiggyBank className="h-4 w-4 text-brand-violet" />
             {goalVMs.length} active {goalVMs.length === 1 ? "vault" : "vaults"}
           </span>
         }

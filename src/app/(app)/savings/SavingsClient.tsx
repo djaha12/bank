@@ -14,6 +14,7 @@ import {
 import { Currency, SavingsGoalStatus } from "@prisma/client";
 import { toast } from "sonner";
 import { MoneyText } from "@/components/brand/money-text";
+import { AnimatedMoney, AnimatedNumber } from "@/components/brand/animated-number";
 import { EmptyState } from "@/components/brand/states";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,34 +122,66 @@ export function SavingsClient({
   return (
     <div className="space-y-6">
       {/* Hero summary */}
-      <Card className="premium-surface border-white/10 p-0 text-white">
-        <div className="bg-radial-glow grid gap-6 p-6 md:grid-cols-[1.3fr_1fr] md:p-8">
-          <div className="space-y-4">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="premium-surface ring-glow shine relative overflow-hidden text-white"
+      >
+        {/* floating accent orb */}
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-emerald/30 blur-3xl animate-float" />
+        <div className="relative z-10 grid gap-6 p-6 md:grid-cols-[1.3fr_1fr] md:p-9">
+          <div className="space-y-5">
             <div className="flex items-center gap-2 text-sm text-white/70">
-              <PiggyBank className="h-4 w-4" /> Total saved across vaults
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
+                <PiggyBank className="h-4 w-4" />
+              </span>
+              Total saved across vaults
             </div>
-            <div className="text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
-              <MoneyText amount={totalSaved.toString()} currency={defaultCurrency} withSymbol />
-            </div>
-            {totalTarget > 0n && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-white/70">
-                  <span>{overallPct.toFixed(1)}% of all goals</span>
+            <AnimatedMoney
+              amount={totalSaved.toString()}
+              currency={defaultCurrency}
+              withSymbol
+              className="block font-display text-4xl font-semibold leading-none tracking-tight sm:text-6xl"
+            />
+            {totalTarget > 0n ? (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between text-sm text-white/75">
                   <span className="tabular-nums">
+                    <AnimatedNumber value={overallPct} decimals={1} suffix="%" /> of all goals
+                  </span>
+                  <span className="tabular-nums text-white/60">
+                    target{" "}
                     <MoneyText amount={totalTarget.toString()} currency={defaultCurrency} withSymbol />
                   </span>
                 </div>
                 <Progress
                   value={overallPct}
-                  className="bg-white/15"
-                  indicatorClassName="bg-white"
+                  className="h-2.5 bg-white/15"
+                  indicatorClassName="bg-gradient-to-r from-white via-brand-cyan to-brand-emerald"
                 />
               </div>
+            ) : (
+              <p className="text-sm text-white/70">
+                Create your first vault to start tracking progress toward a goal.
+              </p>
             )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs backdrop-blur">
+                <Target className="h-3.5 w-3.5" />
+                {goals.length} {goals.length === 1 ? "vault" : "vaults"}
+              </span>
+              {goals.some((g) => g.roundUp) && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs backdrop-blur">
+                  <Coins className="h-3.5 w-3.5" /> Round-up on
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex flex-col justify-end gap-3">
             <Button
               variant="gradient"
+              size="lg"
               onClick={() => setCreateOpen(true)}
               disabled={accounts.length === 0}
             >
@@ -159,7 +192,7 @@ export function SavingsClient({
             </p>
           </div>
         </div>
-      </Card>
+      </motion.div>
 
       {goals.length === 0 ? (
         <EmptyState
@@ -177,15 +210,23 @@ export function SavingsClient({
           }
         />
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {goals.map((goal, i) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              index={i}
-              onToggleRule={toggleRule}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold tracking-tight">Your vaults</h2>
+            <Button variant="ghost" size="sm" onClick={() => setCreateOpen(true)} disabled={accounts.length === 0}>
+              <Plus className="h-4 w-4" /> New vault
+            </Button>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {goals.map((goal, i) => (
+              <GoalCard
+                key={goal.id}
+                goal={goal}
+                index={i}
+                onToggleRule={toggleRule}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -223,24 +264,27 @@ function GoalCard({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.05, 0.3), type: "spring", stiffness: 120, damping: 18 }}
+      whileHover={{ y: -4 }}
+      transition={{ delay: Math.min(index * 0.05, 0.3), type: "spring", stiffness: 140, damping: 18 }}
+      className="group"
     >
-      <Card className="relative h-full overflow-hidden">
+      <Card className="glass-card ring-glow relative h-full overflow-hidden rounded-3xl transition-shadow duration-300">
+        {/* accent glow wash, intensifies on hover */}
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-20"
+          className="pointer-events-none absolute inset-x-0 top-0 h-28 opacity-25 transition-opacity duration-300 group-hover:opacity-40"
           style={{ background: `radial-gradient(120% 80% at 50% 0%, ${accent}, transparent)` }}
         />
         <CardHeader className="relative">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <span
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-white"
-                style={{ backgroundColor: accent }}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-lg ring-1 ring-white/20"
+                style={{ backgroundColor: accent, boxShadow: `0 10px 30px -10px ${accent}` }}
               >
                 <PiggyBank className="h-5 w-5" />
               </span>
               <div>
-                <CardTitle className="text-base">{goal.name}</CardTitle>
+                <CardTitle className="font-display text-base">{goal.name}</CardTitle>
                 <CardDescription>
                   {goal.targetDate
                     ? `By ${new Date(goal.targetDate).toLocaleDateString(undefined, {
@@ -254,33 +298,48 @@ function GoalCard({
             {completed ? (
               <Badge variant="success">Reached</Badge>
             ) : (
-              <Badge variant="secondary">{Math.round(pct)}%</Badge>
+              <Badge variant="secondary" className="tabular-nums">
+                {Math.round(pct)}%
+              </Badge>
             )}
           </div>
         </CardHeader>
         <CardContent className="relative space-y-5">
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <div className="flex items-end justify-between">
-              <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                <MoneyText amount={goal.currentAmount} currency={goal.currency} withSymbol />
-              </div>
+              <AnimatedMoney
+                amount={goal.currentAmount}
+                currency={goal.currency}
+                withSymbol
+                className="font-display text-2xl font-semibold tracking-tight"
+              />
               <div className="text-sm text-muted-foreground">
                 of <MoneyText amount={goal.targetAmount} currency={goal.currency} withSymbol />
               </div>
             </div>
-            <Progress value={pct} indicatorClassName={completed ? "bg-success" : undefined} />
-            {!completed && remaining > 0n && (
-              <p className="text-xs text-muted-foreground">
-                <MoneyText amount={remaining.toString()} currency={goal.currency} withSymbol /> to go
-              </p>
+            <Progress
+              value={pct}
+              className="h-2.5"
+              indicatorClassName={completed ? "bg-success" : "bg-brand-gradient"}
+            />
+            {!completed ? (
+              remaining > 0n && (
+                <p className="text-xs text-muted-foreground">
+                  <MoneyText amount={remaining.toString()} currency={goal.currency} withSymbol /> to go
+                </p>
+              )
+            ) : (
+              <p className="text-xs font-medium text-success">Goal reached — nice work.</p>
             )}
           </div>
 
           {/* Auto-save rules */}
-          <div className="space-y-3 rounded-xl border border-border/60 p-4">
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-background/30 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Coins className="h-4 w-4 text-muted-foreground" />
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-violet/10 text-brand-violet ring-1 ring-white/10">
+                  <Coins className="h-4 w-4" />
+                </span>
                 <div>
                   <div className="text-sm font-medium">Round-up</div>
                   <div className="text-xs text-muted-foreground">Round purchases to the nearest unit</div>
@@ -294,7 +353,9 @@ function GoalCard({
             </div>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Repeat className="h-4 w-4 text-muted-foreground" />
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-cyan/10 text-brand-cyan ring-1 ring-white/10">
+                  <Repeat className="h-4 w-4" />
+                </span>
                 <div>
                   <div className="text-sm font-medium">Recurring</div>
                   <div className="text-xs text-muted-foreground">
@@ -337,10 +398,10 @@ function RoundUpSimulation({ currency }: { currency: Currency }) {
     0n,
   );
   return (
-    <Card className="glass-card overflow-hidden">
+    <Card className="glass-card lift overflow-hidden rounded-3xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-gradient text-white shadow-glow">
+        <CardTitle className="flex items-center gap-2 font-display">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-gradient text-white shadow-glow">
             <Sparkles className="h-4 w-4" />
           </span>
           How round-up works
@@ -358,7 +419,7 @@ function RoundUpSimulation({ currency }: { currency: Currency }) {
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: Math.min(i * 0.06, 0.3) }}
-              className="flex items-center justify-between rounded-lg border border-border/50 bg-background/40 p-3"
+              className="flex items-center justify-between rounded-2xl border border-border/50 bg-background/40 p-3.5 transition-colors hover:border-success/40 hover:bg-success/[0.04]"
             >
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{e.merchant}</div>
@@ -371,7 +432,7 @@ function RoundUpSimulation({ currency }: { currency: Currency }) {
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-sm font-semibold text-success">
+              <div className="flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-sm font-semibold text-success">
                 <TrendingUp className="h-3.5 w-3.5" />+
                 <MoneyText
                   amount={decimalToMinor(e.roundup).toString()}
@@ -382,9 +443,9 @@ function RoundUpSimulation({ currency }: { currency: Currency }) {
             </motion.div>
           ))}
         </div>
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-4">
+        <div className="mt-4 flex items-center justify-between rounded-2xl border border-primary/30 bg-primary/5 p-4">
           <span className="text-sm font-medium">Swept into savings from these 4 purchases</span>
-          <span className="text-lg font-semibold tabular-nums text-primary">
+          <span className="font-display text-lg font-semibold tabular-nums text-primary">
             <MoneyText amount={totalRoundup.toString()} currency={currency} withSymbol />
           </span>
         </div>
@@ -471,7 +532,12 @@ function CreateGoalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a savings goal</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow">
+              <Target className="h-4 w-4" />
+            </span>
+            Create a savings goal
+          </DialogTitle>
           <DialogDescription>
             Name your vault, set a target, and choose how to auto-save. Sandbox — no real money
             moves.
@@ -538,31 +604,40 @@ function CreateGoalDialog({
           </div>
           <div className="space-y-2">
             <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {GOAL_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`h-7 w-7 rounded-full ring-offset-2 ring-offset-background transition-all ${
-                    color === c ? "ring-2 ring-foreground" : ""
+                  className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-background transition-all hover:scale-110 ${
+                    color === c ? "ring-2 ring-foreground scale-110" : "ring-1 ring-white/10"
                   }`}
-                  style={{ backgroundColor: c }}
+                  style={{
+                    backgroundColor: c,
+                    boxShadow: color === c ? `0 0 16px ${c}` : undefined,
+                  }}
                   aria-label={`Select color ${c}`}
                 />
               ))}
             </div>
           </div>
-          <div className="space-y-3 rounded-xl border border-border/60 p-4">
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-background/30 p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Coins className="h-4 w-4 text-muted-foreground" /> Round-up auto-save
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-violet/10 text-brand-violet ring-1 ring-white/10">
+                  <Coins className="h-4 w-4" />
+                </span>
+                Round-up auto-save
               </div>
               <Switch checked={roundUp} onCheckedChange={setRoundUp} aria-label="Round-up" />
             </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Repeat className="h-4 w-4 text-muted-foreground" /> Recurring auto-save
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-cyan/10 text-brand-cyan ring-1 ring-white/10">
+                  <Repeat className="h-4 w-4" />
+                </span>
+                Recurring auto-save
               </div>
               <Switch checked={recurring} onCheckedChange={setRecurring} aria-label="Recurring" />
             </div>

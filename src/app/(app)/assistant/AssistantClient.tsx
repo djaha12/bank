@@ -99,7 +99,7 @@ export function AssistantClient({ greetingName }: { greetingName: string }) {
   }
 
   return (
-    <Card className="glass-card relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <Card className="ring-glow glass-card relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl">
       {/* Messages */}
       <ScrollArea className="flex-1">
         <div ref={scrollRef} className="h-full">
@@ -119,7 +119,7 @@ export function AssistantClient({ greetingName }: { greetingName: string }) {
 
       {/* Quick chips (when conversation has started) */}
       {hasStarted && (
-        <div className="border-t border-border/60 px-4 py-2 sm:px-6">
+        <div className="border-t border-border/60 bg-background/30 px-4 py-2.5 backdrop-blur sm:px-6">
           <div className="mx-auto flex max-w-3xl flex-wrap gap-2">
             {SUGGESTIONS.map((s) => (
               <button
@@ -127,9 +127,9 @@ export function AssistantClient({ greetingName }: { greetingName: string }) {
                 type="button"
                 disabled={sending}
                 onClick={() => void send(s.label)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
+                className="group inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-3 py-1 text-xs text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-brand-violet/50 hover:text-foreground hover:shadow-glow disabled:opacity-50"
               >
-                <s.icon className="h-3 w-3" />
+                <s.icon className="h-3 w-3 text-brand-violet transition-transform group-hover:scale-110" />
                 {s.label}
               </button>
             ))}
@@ -140,9 +140,9 @@ export function AssistantClient({ greetingName }: { greetingName: string }) {
       {/* Composer */}
       <form
         onSubmit={onSubmit}
-        className="border-t border-border/60 bg-background/40 p-4 backdrop-blur sm:p-6"
+        className="border-t border-border/60 bg-background/50 p-4 backdrop-blur-xl sm:p-6"
       >
-        <div className="mx-auto flex max-w-3xl items-center gap-2">
+        <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-2xl border border-border/60 bg-card/60 p-1.5 shadow-card transition-colors focus-within:border-brand-violet/40 focus-within:shadow-glow">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -150,20 +150,21 @@ export function AssistantClient({ greetingName }: { greetingName: string }) {
             maxLength={2000}
             disabled={sending}
             aria-label="Message the assistant"
-            className="h-11 rounded-xl"
+            className="h-11 rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
           <Button
             type="submit"
             variant="gradient"
             size="icon"
-            className="h-11 w-11 rounded-xl"
+            className="h-11 w-11 shrink-0 rounded-xl"
             disabled={sending || input.trim().length === 0}
             aria-label="Send"
           >
             <SendHorizonal className="h-4 w-4" />
           </Button>
         </div>
-        <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-muted-foreground">
+        <p className="mx-auto mt-2.5 flex max-w-3xl items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
+          <ShieldAlert className="h-3 w-3 text-warning" />
           Not financial, legal, or tax advice. Responses are generated in this sandbox.
         </p>
       </form>
@@ -181,11 +182,14 @@ function Welcome({ name, onPick }: { name: string; onPick: (q: string) => void }
       transition={{ duration: 0.3 }}
       className="flex flex-col items-center gap-6 py-10 text-center"
     >
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow">
-        <Sparkles className="h-7 w-7" />
+      <span className="animate-float relative flex h-16 w-16 items-center justify-center rounded-3xl bg-brand-gradient text-white shadow-glow">
+        <span className="absolute inset-0 rounded-3xl bg-brand-gradient opacity-40 blur-xl" />
+        <Sparkles className="relative h-8 w-8" />
       </span>
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold tracking-tight">Hi {name}, how can I help?</h2>
+      <div className="space-y-1.5">
+        <h2 className="font-display text-2xl font-semibold tracking-tight">
+          Hi {name}, how can I <span className="text-gradient">help?</span>
+        </h2>
         <p className="max-w-md text-sm text-muted-foreground">
           I can explain where your money goes, suggest ways to save, flag unusual activity, and help
           you set a budget — all grounded in your sandbox data.
@@ -199,10 +203,11 @@ function Welcome({ name, onPick }: { name: string; onPick: (q: string) => void }
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 * i }}
+            whileHover={{ y: -3 }}
             onClick={() => onPick(s.label)}
-            className="group flex items-center gap-3 rounded-xl border border-border/70 bg-background/50 p-4 text-left transition-all hover:border-primary/40 hover:shadow-glow"
+            className="ring-glow group flex items-center gap-3 rounded-2xl border border-border/60 bg-card/60 p-4 text-left backdrop-blur-xl transition-all hover:border-brand-violet/40 hover:shadow-glow"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary transition-colors group-hover:bg-primary/25">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10 transition-transform group-hover:scale-105">
               <s.icon className="h-4 w-4" />
             </span>
             <span className="text-sm font-medium">{s.label}</span>
@@ -226,18 +231,18 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       className={cn("flex items-end gap-2.5", isUser ? "flex-row-reverse" : "flex-row")}
     >
       {!isUser && (
-        <Avatar className="h-8 w-8 shadow-glow">
-          <AvatarFallback>
+        <Avatar className="h-8 w-8 shrink-0 shadow-glow ring-1 ring-white/10">
+          <AvatarFallback className="bg-brand-gradient text-white">
             <Sparkles className="h-4 w-4" />
           </AvatarFallback>
         </Avatar>
       )}
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+          "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-card",
           isUser
-            ? "rounded-br-sm bg-primary text-primary-foreground"
-            : "rounded-bl-sm border border-border/60 bg-card text-foreground",
+            ? "rounded-br-md bg-brand-gradient text-white shadow-glow"
+            : "rounded-bl-md border border-border/60 bg-card/80 text-foreground backdrop-blur-xl",
         )}
       >
         {message.pending ? <TypingDots /> : <p className="whitespace-pre-wrap">{message.content}</p>}
@@ -252,8 +257,8 @@ function TypingDots() {
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
-          className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
-          animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
+          className="h-2 w-2 rounded-full bg-brand-violet"
+          animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
           transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
         />
       ))}

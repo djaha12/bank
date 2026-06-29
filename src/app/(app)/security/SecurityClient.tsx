@@ -33,6 +33,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/brand/states";
+import { StatCard } from "@/components/brand/stat-card";
+import { AnimatedNumber } from "@/components/brand/animated-number";
 
 // --- View models (all serialized; dates are ISO strings) --------------------
 
@@ -91,15 +93,24 @@ function ScoreRing({ score }: { score: number }) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - score / 100);
   return (
-    <div className="relative flex h-36 w-36 items-center justify-center">
-      <svg className="h-36 w-36 -rotate-90" viewBox="0 0 128 128">
+    <div className="relative flex h-40 w-40 items-center justify-center">
+      {/* soft glow halo behind the ring */}
+      <div className="absolute h-28 w-28 rounded-full bg-brand-gradient opacity-25 blur-2xl" />
+      <svg className="h-40 w-40 -rotate-90" viewBox="0 0 128 128">
+        <defs>
+          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(var(--brand-violet))" />
+            <stop offset="55%" stopColor="hsl(var(--brand-blue))" />
+            <stop offset="100%" stopColor="hsl(var(--brand-cyan))" />
+          </linearGradient>
+        </defs>
         <circle
           cx="64"
           cy="64"
           r={radius}
           fill="none"
           strokeWidth="10"
-          className="stroke-muted"
+          className="stroke-white/10"
         />
         <motion.circle
           cx="64"
@@ -108,16 +119,19 @@ function ScoreRing({ score }: { score: number }) {
           fill="none"
           strokeWidth="10"
           strokeLinecap="round"
-          className={tone.ring}
+          stroke="url(#scoreGradient)"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1, ease: "easeOut" }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className={`text-3xl font-bold tabular-nums ${tone.text}`}>{score}</span>
-        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">/ 100</span>
+        <AnimatedNumber
+          value={score}
+          className="font-display text-4xl font-semibold leading-none tracking-tight text-white"
+        />
+        <span className="mt-1 text-[11px] uppercase tracking-wide text-white/60">/ 100</span>
       </div>
     </div>
   );
@@ -192,10 +206,13 @@ export function SecurityClient({
           transition={{ type: "spring", stiffness: 120, damping: 18 }}
           className="lg:col-span-1"
         >
-          <Card className="premium-surface h-full border-white/10 text-white">
+          <Card className="premium-surface ring-glow lift h-full border-white/10 text-white">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <ShieldCheck className="h-5 w-5" /> Security score
+              <CardTitle className="flex items-center gap-2 font-display text-white">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15">
+                  <ShieldCheck className="h-4.5 w-4.5" />
+                </span>
+                Security score
               </CardTitle>
               <CardDescription className="text-white/70">
                 A live estimate of your account&apos;s protection.
@@ -203,7 +220,12 @@ export function SecurityClient({
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-3">
               <ScoreRing score={score} />
-              <Badge variant={tone.badge}>{tone.label}</Badge>
+              <Badge
+                variant={tone.badge}
+                className="border border-white/20 bg-white/10 text-white backdrop-blur"
+              >
+                {tone.label}
+              </Badge>
               <p className="text-center text-xs text-white/60">
                 {score >= 80
                   ? "Excellent. Keep trusted devices tidy and you're set."
@@ -213,51 +235,58 @@ export function SecurityClient({
           </Card>
         </motion.div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:col-span-2">
-          <PostureCard
-            icon={<KeyRound className="h-5 w-5 text-primary" />}
-            title="Passkeys"
-            value={String(passkeyCount)}
+        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+          <StatCard
+            label="Passkeys"
+            accent="violet"
+            index={0}
+            value={<AnimatedNumber value={passkeyCount} />}
             hint={passkeyCount > 0 ? "Phishing-resistant sign-in" : "Not set up yet"}
-            status={passkeyCount > 0 ? "good" : "warn"}
+            icon={<KeyRound className="h-4 w-4" />}
           />
-          <PostureCard
-            icon={<Smartphone className="h-5 w-5 text-primary" />}
-            title="Active devices"
-            value={String(deviceList.length)}
+          <StatCard
+            label="Active devices"
+            accent="blue"
+            index={1}
+            value={<AnimatedNumber value={deviceList.length} />}
             hint={`${trustedDevices.length} trusted`}
-            status={deviceList.length <= 3 ? "good" : "warn"}
+            icon={<Smartphone className="h-4 w-4" />}
           />
-          <PostureCard
-            icon={<XCircle className="h-5 w-5 text-destructive" />}
-            title="Failed sign-ins"
-            value={String(failedLogins)}
+          <StatCard
+            label="Failed sign-ins"
+            accent={failedLogins === 0 ? "emerald" : "violet"}
+            index={2}
+            value={<AnimatedNumber value={failedLogins} />}
             hint="In your recent history"
-            status={failedLogins === 0 ? "good" : "warn"}
+            icon={<XCircle className="h-4 w-4" />}
           />
-          <PostureCard
-            icon={<ShieldAlert className="h-5 w-5 text-warning" />}
-            title="Suspicious events"
-            value={String(suspiciousLogins)}
+          <StatCard
+            label="Suspicious events"
+            accent={suspiciousLogins === 0 ? "emerald" : "violet"}
+            index={3}
+            value={<AnimatedNumber value={suspiciousLogins} />}
             hint="Flagged by our risk engine"
-            status={suspiciousLogins === 0 ? "good" : "bad"}
+            icon={<ShieldAlert className="h-4 w-4" />}
           />
         </div>
       </div>
 
       {/* Sign-in protection */}
-      <Card>
+      <Card className="ring-glow lift">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5 text-muted-foreground" /> Sign-in protection
+          <CardTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-blue/30 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
+              <Lock className="h-4 w-4" />
+            </span>
+            Sign-in protection
           </CardTitle>
           <CardDescription>Extra layers that keep intruders out, even with your password.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 p-4">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/50 p-4 transition-colors hover:border-brand-violet/30">
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-muted p-2">
-                <Smartphone className="h-4 w-4 text-muted-foreground" />
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/25 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                <Smartphone className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -272,10 +301,10 @@ export function SecurityClient({
             <Switch checked={twoFactor} onCheckedChange={toggle2fa} aria-label="Two-factor authentication" />
           </div>
 
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-border/60 p-4 opacity-90">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-border/60 bg-card/30 p-4">
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-muted p-2">
-                <Fingerprint className="h-4 w-4 text-muted-foreground" />
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand-cyan/25 to-brand-cyan/5 text-brand-cyan ring-1 ring-white/10">
+                <Fingerprint className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -346,9 +375,9 @@ export function SecurityClient({
             </Card>
           )}
 
-          <Card>
+          <Card className="ring-glow">
             <CardHeader>
-              <CardTitle className="text-base">Active sessions</CardTitle>
+              <CardTitle className="font-display text-base">Active sessions</CardTitle>
               <CardDescription>Everywhere you&apos;re currently signed in.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -367,11 +396,14 @@ export function SecurityClient({
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: Math.min(i * 0.04, 0.25) }}
-                      className="flex flex-col gap-3 rounded-xl border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/40 p-4 transition-all hover:border-brand-violet/30 hover:bg-card/70 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="rounded-lg bg-muted p-2">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
+                        <div className="relative grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand-blue/20 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
+                          <Icon className="h-4.5 w-4.5" />
+                          {d.current && (
+                            <span className="dot absolute -right-0.5 -top-0.5 text-brand-emerald" />
+                          )}
                         </div>
                         <div className="space-y-0.5">
                           <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
@@ -482,33 +514,3 @@ export function SecurityClient({
   );
 }
 
-function PostureCard({
-  icon,
-  title,
-  value,
-  hint,
-  status,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  hint: string;
-  status: "good" | "warn" | "bad";
-}) {
-  const ring =
-    status === "good"
-      ? "border-success/30"
-      : status === "bad"
-        ? "border-destructive/30"
-        : "border-border/60";
-  return (
-    <Card className={`p-5 ${ring}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{title}</span>
-        <span className="rounded-lg bg-muted p-1.5">{icon}</span>
-      </div>
-      <div className="mt-3 text-2xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
-    </Card>
-  );
-}

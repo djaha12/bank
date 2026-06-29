@@ -41,10 +41,14 @@ export default async function TransfersPage() {
   const kycApproved = user.kycStatus === "APPROVED";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Transfers"
-        description="Move money between your accounts, to people, or out to a bank. All sandbox."
+        title={
+          <>
+            Move <span className="text-gradient">money</span>
+          </>
+        }
+        description="Between your accounts, to people, or out to a bank. All sandbox, all instant."
       />
       {accountVMs.length === 0 ? (
         <EmptyState

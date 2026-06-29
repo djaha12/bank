@@ -72,10 +72,14 @@ export default async function CardsPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Cards"
-        description="Your virtual debit cards — freeze, set limits, and control where they work."
+        title={
+          <>
+            Your <span className="text-gradient">cards</span>
+          </>
+        }
+        description="Virtual debit cards — freeze, set limits, and control exactly where they work."
       />
       {cardVMs.length === 0 && accountVMs.length === 0 ? (
         <EmptyState

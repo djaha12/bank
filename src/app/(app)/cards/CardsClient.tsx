@@ -4,6 +4,7 @@ import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Atom,
+  CheckCircle2,
   CreditCard,
   Lock,
   Plus,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Snowflake,
+  Sparkles,
   Store,
   Wifi,
   Globe,
@@ -21,7 +23,6 @@ import { VirtualCard } from "@/components/brand/virtual-card";
 import { MoneyText } from "@/components/brand/money-text";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -179,12 +180,24 @@ export function CardsClient({
     }
   }
 
+  const activeCount = cards.filter((c) => c.status === "ACTIVE").length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {cards.length} {cards.length === 1 ? "card" : "cards"}
-        </p>
+      <div className="glass-card ring-glow flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow">
+            <CreditCard className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="font-display text-base font-semibold leading-tight tracking-tight">
+              {cards.length} {cards.length === 1 ? "card" : "cards"}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {activeCount} active · tap a card to manage controls
+            </div>
+          </div>
+        </div>
         <Button
           variant="gradient"
           onClick={() => setCreateOpen(true)}
@@ -208,130 +221,141 @@ export function CardsClient({
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           {cards.map((card, i) => (
-            <motion.div
+            <motion.article
               key={card.id}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.05, 0.3), type: "spring", stiffness: 120, damping: 18 }}
+              className="glass-card ring-glow lift group flex flex-col overflow-hidden rounded-3xl"
             >
-              <Card className="overflow-hidden">
-                <CardHeader className="gap-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
-                        Virtual debit {statusBadge(card.status)}
-                      </CardTitle>
-                      <CardDescription>
-                        {card.accountName} · Available{" "}
-                        <MoneyText
-                          amount={card.availableBalance}
-                          currency={card.currency}
-                          className="font-medium text-foreground"
-                        />
-                      </CardDescription>
-                    </div>
-                  </div>
+              {/* Showpiece — the virtual card on an aurora plinth */}
+              <div className="relative isolate overflow-hidden p-6 pb-7">
+                <div className="bg-grid pointer-events-none absolute inset-0 opacity-60" />
+                <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-brand-violet/25 blur-3xl" />
+                <div className="pointer-events-none absolute -right-12 top-8 h-40 w-40 rounded-full bg-brand-cyan/20 blur-3xl" />
 
-                  <VirtualCard
-                    last4={card.last4}
-                    holder={card.cardholderName}
-                    expMonth={card.expMonth}
-                    expYear={card.expYear}
-                    currency={card.currency}
-                    brand={card.brand}
-                    frozen={card.status !== "ACTIVE"}
+                <div className="relative z-10 mb-5 flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <h3 className="flex items-center gap-2 font-display text-base font-semibold tracking-tight">
+                      Virtual debit {statusBadge(card.status)}
+                    </h3>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {card.accountName} · Available{" "}
+                      <MoneyText
+                        amount={card.availableBalance}
+                        currency={card.currency}
+                        className="font-semibold text-foreground"
+                      />
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative z-10 flex justify-center">
+                  <div className={card.status === "ACTIVE" ? "animate-float" : ""}>
+                    <VirtualCard
+                      last4={card.last4}
+                      holder={card.cardholderName}
+                      expMonth={card.expMonth}
+                      expYear={card.expYear}
+                      currency={card.currency}
+                      brand={card.brand}
+                      frozen={card.status !== "ACTIVE"}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-1 flex-col space-y-5 p-6 pt-0">
+                {/* Primary actions */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={card.status === "FROZEN" ? "gradient" : "outline"}
+                    size="sm"
+                    onClick={() => toggleFreeze(card)}
+                    disabled={pending === card.id || card.status === "CLOSED"}
+                  >
+                    <Snowflake className="h-4 w-4" />
+                    {card.status === "FROZEN" ? "Unfreeze" : "Freeze"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLimitsCard(card)}
+                    disabled={card.status === "CLOSED"}
+                  >
+                    <Settings2 className="h-4 w-4" /> Edit limits
+                  </Button>
+                  <Button
+                    variant="gradient"
+                    size="sm"
+                    onClick={() => setPurchaseCard(card)}
+                    disabled={card.status !== "ACTIVE"}
+                  >
+                    <ShoppingBag className="h-4 w-4" /> Simulate purchase
+                  </Button>
+                </div>
+
+                {/* Control toggles */}
+                <div className="space-y-1 rounded-2xl border border-border/60 bg-background/40 p-2 backdrop-blur-sm">
+                  <ControlRow
+                    icon={<Globe className="h-4 w-4" />}
+                    accent="violet"
+                    label="Online payments"
+                    description="Allow e-commerce & subscriptions"
+                    checked={card.onlinePaymentsEnabled}
+                    disabled={pending === card.id || card.status === "CLOSED"}
+                    onChange={(v) => toggleControl(card, "onlinePaymentsEnabled", v)}
                   />
-                </CardHeader>
+                  <ControlRow
+                    icon={<Atom className="h-4 w-4" />}
+                    accent="cyan"
+                    label="ATM withdrawals"
+                    description="Cash at ATMs"
+                    checked={card.atmEnabled}
+                    disabled={pending === card.id || card.status === "CLOSED"}
+                    onChange={(v) => toggleControl(card, "atmEnabled", v)}
+                  />
+                  <ControlRow
+                    icon={<Wifi className="h-4 w-4" />}
+                    accent="emerald"
+                    label="Contactless"
+                    description="Tap to pay in store"
+                    checked={card.contactlessEnabled}
+                    disabled={pending === card.id || card.status === "CLOSED"}
+                    onChange={(v) => toggleControl(card, "contactlessEnabled", v)}
+                  />
+                </div>
 
-                <CardContent className="space-y-5">
-                  {/* Primary actions */}
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant={card.status === "FROZEN" ? "gradient" : "outline"}
-                      size="sm"
-                      onClick={() => toggleFreeze(card)}
-                      disabled={pending === card.id || card.status === "CLOSED"}
-                    >
-                      <Snowflake className="h-4 w-4" />
-                      {card.status === "FROZEN" ? "Unfreeze" : "Freeze"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLimitsCard(card)}
-                      disabled={card.status === "CLOSED"}
-                    >
-                      <Settings2 className="h-4 w-4" /> Edit limits
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setPurchaseCard(card)}
-                      disabled={card.status !== "ACTIVE"}
-                    >
-                      <ShoppingBag className="h-4 w-4" /> Simulate purchase
-                    </Button>
+                {/* Limits summary */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <LimitStat label="Per transaction" amount={card.limit.perTxLimit} currency={card.currency} />
+                  <LimitStat label="Daily" amount={card.limit.dailyLimit} currency={card.currency} />
+                  <LimitStat label="Monthly" amount={card.limit.monthlyLimit} currency={card.currency} />
+                  <LimitStat label="ATM daily" amount={card.limit.atmDailyLimit} currency={card.currency} />
+                </div>
+
+                {/* Merchant controls */}
+                <div className="mt-auto space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Store className="h-4 w-4 text-muted-foreground" /> Merchant controls
                   </div>
-
-                  {/* Control toggles */}
-                  <div className="space-y-3 rounded-xl border border-border/60 p-4">
-                    <ControlRow
-                      icon={<Globe className="h-4 w-4 text-muted-foreground" />}
-                      label="Online payments"
-                      description="Allow e-commerce & subscriptions"
-                      checked={card.onlinePaymentsEnabled}
-                      disabled={pending === card.id || card.status === "CLOSED"}
-                      onChange={(v) => toggleControl(card, "onlinePaymentsEnabled", v)}
-                    />
-                    <ControlRow
-                      icon={<Atom className="h-4 w-4 text-muted-foreground" />}
-                      label="ATM withdrawals"
-                      description="Cash at ATMs"
-                      checked={card.atmEnabled}
-                      disabled={pending === card.id || card.status === "CLOSED"}
-                      onChange={(v) => toggleControl(card, "atmEnabled", v)}
-                    />
-                    <ControlRow
-                      icon={<Wifi className="h-4 w-4 text-muted-foreground" />}
-                      label="Contactless"
-                      description="Tap to pay in store"
-                      checked={card.contactlessEnabled}
-                      disabled={pending === card.id || card.status === "CLOSED"}
-                      onChange={(v) => toggleControl(card, "contactlessEnabled", v)}
-                    />
-                  </div>
-
-                  {/* Limits summary */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <LimitStat label="Per transaction" amount={card.limit.perTxLimit} currency={card.currency} />
-                    <LimitStat label="Daily" amount={card.limit.dailyLimit} currency={card.currency} />
-                    <LimitStat label="Monthly" amount={card.limit.monthlyLimit} currency={card.currency} />
-                    <LimitStat label="ATM daily" amount={card.limit.atmDailyLimit} currency={card.currency} />
-                  </div>
-
-                  {/* Merchant controls */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <Store className="h-4 w-4 text-muted-foreground" /> Merchant controls
+                  {card.merchantControls.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      No category rules. All allowed merchant categories are accepted.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {card.merchantControls.map((m) => (
+                        <Badge key={m.id} variant={m.blocked ? "destructive" : "secondary"}>
+                          {m.blocked ? <Lock className="mr-1 h-3 w-3" /> : <ShieldCheck className="mr-1 h-3 w-3" />}
+                          {m.label}
+                        </Badge>
+                      ))}
                     </div>
-                    {card.merchantControls.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        No category rules. All allowed merchant categories are accepted.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {card.merchantControls.map((m) => (
-                          <Badge key={m.id} variant={m.blocked ? "destructive" : "secondary"}>
-                            {m.blocked ? <Lock className="mr-1 h-3 w-3" /> : <ShieldCheck className="mr-1 h-3 w-3" />}
-                            {m.label}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                  )}
+                </div>
+              </div>
+            </motion.article>
           ))}
         </div>
       )}
@@ -365,8 +389,15 @@ export function CardsClient({
 
 // --- Sub-components -----------------------------------------------------------
 
+const ACCENT_CHIP: Record<"violet" | "cyan" | "emerald", string> = {
+  violet: "bg-brand-violet/15 text-brand-violet",
+  cyan: "bg-brand-cyan/15 text-brand-cyan",
+  emerald: "bg-brand-emerald/15 text-brand-emerald",
+};
+
 function ControlRow({
   icon,
+  accent,
   label,
   description,
   checked,
@@ -374,6 +405,7 @@ function ControlRow({
   onChange,
 }: {
   icon: React.ReactNode;
+  accent: "violet" | "cyan" | "emerald";
   label: string;
   description: string;
   checked: boolean;
@@ -381,11 +413,13 @@ function ControlRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/40">
       <div className="flex items-center gap-3">
-        {icon}
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${ACCENT_CHIP[accent]}`}>
+          {icon}
+        </span>
         <div>
-          <div className="text-sm font-medium">{label}</div>
+          <div className="text-sm font-medium leading-tight">{label}</div>
           <div className="text-xs text-muted-foreground">{description}</div>
         </div>
       </div>
@@ -397,10 +431,14 @@ function ControlRow({
 function LimitStat({ label, amount, currency }: { label: string; amount: string; currency: Currency }) {
   const unlimited = amount === "0";
   return (
-    <div className="rounded-lg border border-border/50 bg-background/40 p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold tabular-nums">
-        {unlimited ? "No limit" : <MoneyText amount={amount} currency={currency} />}
+    <div className="rounded-xl border border-border/50 bg-background/40 p-3 transition-colors hover:border-brand-violet/40">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 font-display text-sm font-semibold tabular-nums">
+        {unlimited ? (
+          <span className="text-muted-foreground">No limit</span>
+        ) : (
+          <MoneyText amount={amount} currency={currency} />
+        )}
       </div>
     </div>
   );
@@ -493,15 +531,35 @@ function CreateCardDialog({
     }
   }
 
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="glass-card border-border/60 sm:rounded-3xl">
         <DialogHeader>
-          <DialogTitle>Create virtual card</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow">
+              <CreditCard className="h-4 w-4" />
+            </span>
+            Create virtual card
+          </DialogTitle>
           <DialogDescription>
             Issue a new virtual debit card linked to one of your accounts. No physical card, no real PAN.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Live preview */}
+        <div className="flex justify-center py-1">
+          <VirtualCard
+            last4="••••"
+            holder={cardholderName || "Your name"}
+            expMonth={12}
+            expYear={new Date().getFullYear() + 4}
+            currency={selectedAccount?.currency ?? "USD"}
+            className="max-w-[20rem]"
+          />
+        </div>
+
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Linked account</Label>
@@ -583,9 +641,14 @@ function EditLimitsDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="glass-card border-border/60 sm:rounded-3xl">
         <DialogHeader>
-          <DialogTitle>Edit card limits</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow">
+              <Settings2 className="h-4 w-4" />
+            </span>
+            Edit card limits
+          </DialogTitle>
           <DialogDescription>
             Set spending limits in {card.currency}. Use 0 for no limit. Card ending {card.last4}.
           </DialogDescription>
@@ -697,9 +760,14 @@ function SimulatePurchaseDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="glass-card border-border/60 sm:rounded-3xl">
         <DialogHeader>
-          <DialogTitle>Simulate a card purchase</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow">
+              <ShoppingBag className="h-4 w-4" />
+            </span>
+            Simulate a card purchase
+          </DialogTitle>
           <DialogDescription>
             Run a sandbox authorization against card ending {card.last4} ({card.currency}).
           </DialogDescription>
@@ -715,13 +783,17 @@ function SimulatePurchaseDialog({
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
               className="space-y-4"
             >
-              <div className="rounded-xl border border-success/30 bg-success/5 p-5 text-center">
-                <ShoppingBag className="mx-auto mb-2 h-6 w-6 text-success" />
-                <div className="text-sm font-semibold text-success">Payment approved</div>
-                <div className="mt-1 text-2xl font-bold tabular-nums">
+              <div className="premium-surface ring-glow shine relative overflow-hidden rounded-2xl p-6 text-center text-white">
+                <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-white/15 backdrop-blur">
+                  <CheckCircle2 className="h-6 w-6" />
+                </span>
+                <div className="flex items-center justify-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5" /> Payment approved
+                </div>
+                <div className="mt-1 font-display text-3xl font-bold tabular-nums">
                   <MoneyText amount={result.amount} currency={result.currency} withSymbol />
                 </div>
-                <div className="text-xs text-muted-foreground">at {merchant.trim()}</div>
+                <div className="text-xs text-white/70">at {merchant.trim()}</div>
               </div>
               <dl className="space-y-2 text-sm">
                 <ReceiptRow label="Reference" value={result.reference} />

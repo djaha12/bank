@@ -14,6 +14,7 @@ import {
 import { Currency } from "@prisma/client";
 import { toast } from "sonner";
 import { MoneyText } from "@/components/brand/money-text";
+import { AnimatedMoney } from "@/components/brand/animated-number";
 import { SuccessState } from "@/components/brand/states";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +78,14 @@ function accountById(accounts: TransferAccountVM[], id: string): TransferAccount
   return accounts.find((a) => a.id === id);
 }
 
+const TABS: { value: Kind; label: string; icon: React.ReactNode }[] = [
+  { value: "OWN", label: "Own", icon: <ArrowLeftRight className="h-4 w-4" /> },
+  { value: "P2P", label: "P2P", icon: <Send className="h-4 w-4" /> },
+  { value: "BANK", label: "Bank", icon: <Banknote className="h-4 w-4" /> },
+  { value: "QR", label: "QR", icon: <QrCode className="h-4 w-4" /> },
+  { value: "SCHEDULED", label: "Scheduled", icon: <CalendarClock className="h-4 w-4" /> },
+];
+
 export function TransfersClient({
   accounts,
   kycApproved,
@@ -89,62 +98,76 @@ export function TransfersClient({
   return (
     <div className="space-y-6">
       {!kycApproved && (
-        <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 text-sm">
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="ring-glow flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 text-sm backdrop-blur-xl"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-warning/15 text-warning">
+            <ShieldAlert className="h-5 w-5" />
+          </span>
           <div>
             <div className="font-medium">Identity verification required</div>
             <p className="text-muted-foreground">
               Complete KYC to move money. You can review the flows below, but submitting will be declined.
             </p>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Kind)}>
-        <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto sm:grid-cols-none">
-          <TabsTrigger value="OWN" className="gap-1.5">
-            <ArrowLeftRight className="h-4 w-4" /> Own
-          </TabsTrigger>
-          <TabsTrigger value="P2P" className="gap-1.5">
-            <Send className="h-4 w-4" /> P2P
-          </TabsTrigger>
-          <TabsTrigger value="BANK" className="gap-1.5">
-            <Banknote className="h-4 w-4" /> Bank
-          </TabsTrigger>
-          <TabsTrigger value="QR" className="gap-1.5">
-            <QrCode className="h-4 w-4" /> QR
-          </TabsTrigger>
-          <TabsTrigger value="SCHEDULED" className="gap-1.5">
-            <CalendarClock className="h-4 w-4" /> Scheduled
-          </TabsTrigger>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Kind)} className="space-y-6">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 rounded-2xl border border-border/60 bg-card/60 p-1.5 backdrop-blur-xl sm:inline-flex sm:w-auto sm:grid-cols-none">
+          {TABS.map((t) => (
+            <TabsTrigger
+              key={t.value}
+              value={t.value}
+              className="group relative gap-1.5 rounded-xl px-3.5 py-2 font-medium transition-all data-[state=active]:bg-brand-gradient data-[state=active]:text-white data-[state=active]:shadow-glow"
+            >
+              {t.icon}
+              {t.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="OWN">
-          <TransferFlow kind="OWN" accounts={accounts} />
-        </TabsContent>
-        <TabsContent value="P2P">
-          <TransferFlow kind="P2P" accounts={accounts} />
-        </TabsContent>
-        <TabsContent value="BANK">
-          <TransferFlow kind="BANK" accounts={accounts} />
-        </TabsContent>
-        <TabsContent value="QR">
-          <TransferFlow kind="QR" accounts={accounts} />
-        </TabsContent>
-        <TabsContent value="SCHEDULED">
-          <TransferFlow kind="SCHEDULED" accounts={accounts} />
-        </TabsContent>
+        {TABS.map((t) => (
+          <TabsContent key={t.value} value={t.value} className="mt-0">
+            <TransferFlow kind={t.value} accounts={accounts} />
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
 }
 
-const KIND_META: Record<Kind, { title: string; description: string }> = {
-  OWN: { title: "Between your accounts", description: "Instant move between accounts you own." },
-  P2P: { title: "Send to a person", description: "Pay another customer by email or account id." },
-  BANK: { title: "Send to a bank", description: "Sandbox external bank payout via settlement." },
-  QR: { title: "Scan & pay", description: "Pay a person from a scanned QR payload." },
-  SCHEDULED: { title: "Schedule a transfer", description: "Plan a transfer for a future date (sandbox note)." },
+const KIND_META: Record<
+  Kind,
+  { title: string; description: string; icon: React.ReactNode }
+> = {
+  OWN: {
+    title: "Between your accounts",
+    description: "Instant move between accounts you own.",
+    icon: <ArrowLeftRight className="h-5 w-5" />,
+  },
+  P2P: {
+    title: "Send to a person",
+    description: "Pay another customer by email or account id.",
+    icon: <Send className="h-5 w-5" />,
+  },
+  BANK: {
+    title: "Send to a bank",
+    description: "Sandbox external bank payout via settlement.",
+    icon: <Banknote className="h-5 w-5" />,
+  },
+  QR: {
+    title: "Scan & pay",
+    description: "Pay a person from a scanned QR payload.",
+    icon: <QrCode className="h-5 w-5" />,
+  },
+  SCHEDULED: {
+    title: "Schedule a transfer",
+    description: "Plan a transfer for a future date (sandbox note).",
+    icon: <CalendarClock className="h-5 w-5" />,
+  },
 };
 
 function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccountVM[] }) {
@@ -286,11 +309,40 @@ function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccoun
     }
   }
 
+  const steps: { phase: Phase; label: string }[] = [
+    { phase: "form", label: "Details" },
+    { phase: "confirm", label: "Review" },
+    { phase: "receipt", label: "Done" },
+  ];
+  const stepIndex = steps.findIndex((s) => s.phase === phase);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{meta.title}</CardTitle>
-        <CardDescription>{meta.description}</CardDescription>
+    <Card className="ring-glow glass-card overflow-hidden">
+      <CardHeader className="gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-gradient text-white shadow-glow">
+              {meta.icon}
+            </span>
+            <div>
+              <CardTitle className="font-display text-lg tracking-tight">{meta.title}</CardTitle>
+              <CardDescription>{meta.description}</CardDescription>
+            </div>
+          </div>
+          {/* Step rail */}
+          <div className="hidden items-center gap-1.5 pt-1 sm:flex">
+            {steps.map((s, i) => (
+              <React.Fragment key={s.phase}>
+                <span
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i <= stepIndex ? "w-8 bg-brand-gradient" : "w-4 bg-muted"
+                  }`}
+                  aria-current={i === stepIndex ? "step" : undefined}
+                />
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <AnimatePresence mode="wait">
@@ -329,13 +381,18 @@ function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccoun
               </div>
 
               {from && (
-                <p className="text-xs text-muted-foreground">
-                  Available in {from.name}:{" "}
-                  <MoneyText amount={from.available} currency={from.currency} className="font-medium text-foreground" />
-                </p>
+                <div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/30 px-4 py-2.5 text-xs">
+                  <span className="text-muted-foreground">Available in {from.name}</span>
+                  <MoneyText
+                    amount={from.available}
+                    currency={from.currency}
+                    withSymbol
+                    className="font-semibold text-foreground"
+                  />
+                </div>
               )}
 
-              <Button variant="gradient" className="w-full" onClick={toConfirm}>
+              <Button variant="gradient" size="lg" className="w-full" onClick={toConfirm}>
                 Review transfer
               </Button>
             </motion.div>
@@ -350,15 +407,23 @@ function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccoun
               transition={{ type: "spring", stiffness: 220, damping: 22 }}
               className="space-y-5"
             >
-              <div className="rounded-xl border border-border/60 bg-background/40 p-5 text-center">
-                <div className="text-xs uppercase tracking-widest text-muted-foreground">You are sending</div>
-                <div className="mt-1 text-3xl font-bold tabular-nums">
-                  <MoneyText amount={amountToMinor(draft.amount, from.currency)} currency={from.currency} withSymbol />
+              {/* Premium amount hero */}
+              <div className="premium-surface ring-glow relative p-6 text-center text-white">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/60">
+                  You are sending
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">{confirmTarget(kind, draft, accounts)}</div>
+                <AnimatedMoney
+                  amount={amountToMinor(draft.amount, from.currency)}
+                  currency={from.currency}
+                  withSymbol
+                  className="mt-2 block font-display text-4xl font-semibold leading-none tracking-tight sm:text-5xl"
+                />
+                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-sm text-white/90 backdrop-blur">
+                  {confirmTarget(kind, draft, accounts)}
+                </div>
               </div>
 
-              <dl className="space-y-2 text-sm">
+              <dl className="space-y-1.5 rounded-2xl border border-border/50 bg-muted/20 p-4 text-sm">
                 <Row label="From" value={`${from.name} · ${from.currency} · ••${from.displayNumber}`} />
                 <Row label="Type" value={<Badge variant="secondary">{kind}</Badge>} />
                 {draft.note && <Row label="Note" value={draft.note} />}
@@ -368,10 +433,10 @@ function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccoun
               </dl>
 
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setPhase("form")} disabled={submitting}>
+                <Button variant="outline" size="lg" className="flex-1" onClick={() => setPhase("form")} disabled={submitting}>
                   Back
                 </Button>
-                <Button variant="gradient" className="flex-1" onClick={submit} disabled={submitting}>
+                <Button variant="gradient" size="lg" className="flex-1" onClick={submit} disabled={submitting}>
                   {submitting ? "Sending…" : "Confirm & send"}
                 </Button>
               </div>
@@ -387,26 +452,39 @@ function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccoun
               transition={{ type: "spring", stiffness: 220, damping: 20 }}
               className="space-y-5"
             >
+              {/* Celebratory burst */}
+              <div className="relative">
+                <Confetti />
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.05 }}
+                  className="relative mx-auto grid h-16 w-16 place-items-center rounded-full bg-success/15 text-success shadow-[0_0_0_8px_hsl(var(--success)/0.08)]"
+                >
+                  <CheckCircle2 className="h-8 w-8" />
+                </motion.div>
+              </div>
+
               <SuccessState
                 title={kind === "SCHEDULED" ? "Transfer scheduled (sandbox)" : "Transfer complete"}
                 description={`Reference ${result.transactionId.slice(0, 8).toUpperCase()}`}
               />
 
-              <dl className="space-y-2 text-sm">
+              <dl className="space-y-1.5 rounded-2xl border border-border/50 bg-muted/20 p-4 text-sm">
                 <Row
                   label="Amount"
-                  value={<MoneyText amount={amountToMinor(draft.amount, result.currency)} currency={result.currency} />}
+                  value={<MoneyText amount={amountToMinor(draft.amount, result.currency)} currency={result.currency} withSymbol />}
                 />
-                <Row label="Fee" value={<MoneyText amount={result.fee} currency={result.currency} />} />
+                <Row label="Fee" value={<MoneyText amount={result.fee} currency={result.currency} withSymbol />} />
                 <Row label="Status" value={<StatusBadge status={result.status} />} />
                 <Row
                   label="New balance"
-                  value={<MoneyText amount={result.fromBalanceAfter} currency={result.currency} />}
+                  value={<MoneyText amount={result.fromBalanceAfter} currency={result.currency} withSymbol />}
                 />
                 {result.toBalanceAfter !== null && (
                   <Row
                     label="Recipient balance"
-                    value={<MoneyText amount={result.toBalanceAfter} currency={result.currency} />}
+                    value={<MoneyText amount={result.toBalanceAfter} currency={result.currency} withSymbol />}
                   />
                 )}
                 {result.alerts > 0 && (
@@ -427,7 +505,7 @@ function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccoun
                 <span className="text-xs">Saved to your activity</span>
               </div>
 
-              <Button variant="gradient" className="w-full" onClick={reset}>
+              <Button variant="gradient" size="lg" className="w-full" onClick={reset}>
                 New transfer
               </Button>
             </motion.div>
@@ -435,6 +513,35 @@ function TransferFlow({ kind, accounts }: { kind: Kind; accounts: TransferAccoun
         </AnimatePresence>
       </CardContent>
     </Card>
+  );
+}
+
+/** Lightweight celebratory confetti burst — pure framer-motion, no deps. */
+function Confetti() {
+  const pieces = React.useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => ({
+        id: i,
+        x: (Math.random() - 0.5) * 220,
+        y: 40 + Math.random() * 90,
+        rotate: Math.random() * 360,
+        delay: Math.random() * 0.12,
+        color: ["bg-brand-violet", "bg-brand-cyan", "bg-brand-emerald", "bg-brand-blue"][i % 4]!,
+      })),
+    [],
+  );
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 mx-auto h-0 w-0" aria-hidden>
+      {pieces.map((p) => (
+        <motion.span
+          key={p.id}
+          initial={{ opacity: 1, x: 0, y: 0, rotate: 0 }}
+          animate={{ opacity: 0, x: p.x, y: p.y, rotate: p.rotate }}
+          transition={{ duration: 1.1, delay: p.delay, ease: "easeOut" }}
+          className={`absolute h-2 w-1.5 rounded-[1px] ${p.color}`}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -479,15 +586,22 @@ function AmountField({
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="amount">Amount {currency ? `(${currency})` : ""}</Label>
-      <Input
-        id="amount"
-        inputMode="decimal"
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^\d.]/g, ""))}
-        placeholder="0.00"
-        className="text-lg font-semibold tabular-nums"
-      />
+      <Label htmlFor="amount">Amount</Label>
+      <div className="relative">
+        {currency && (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+            {currency}
+          </span>
+        )}
+        <Input
+          id="amount"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value.replace(/[^\d.]/g, ""))}
+          placeholder="0.00"
+          className={`h-12 text-2xl font-semibold tabular-nums ${currency ? "pl-16" : ""}`}
+        />
+      </div>
     </div>
   );
 }
@@ -629,15 +743,26 @@ function QrField({
   const scanned = Boolean(draft.recipientEmail);
 
   return (
-    <div className="space-y-3 rounded-xl border border-border/60 p-4">
+    <div
+      className={`space-y-3 rounded-2xl border p-4 transition-colors ${
+        scanned ? "border-success/40 bg-success/5" : "border-border/60 bg-muted/20"
+      }`}
+    >
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
-          <QrCode className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <div className="text-sm">
+        <motion.div
+          key={scanned ? "scanned" : "idle"}
+          initial={{ scale: 0.9, opacity: 0.6 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className={`grid h-12 w-12 place-items-center rounded-xl ${
+            scanned ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {scanned ? <CheckCircle2 className="h-6 w-6" /> : <QrCode className="h-6 w-6" />}
+        </motion.div>
+        <div className="min-w-0 text-sm">
           {scanned ? (
             <>
-              <div className="font-medium">Scanned: {draft.recipientEmail}</div>
+              <div className="truncate font-medium">Scanned: {draft.recipientEmail}</div>
               <div className="text-xs text-muted-foreground">Routes via P2P</div>
             </>
           ) : (
