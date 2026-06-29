@@ -14,6 +14,7 @@ import {
   Siren,
   ReceiptText,
   Globe,
+  Hash,
 } from "lucide-react";
 import { requirePageAdmin } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
@@ -21,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { StatCard } from "@/components/brand/stat-card";
 import { MoneyText } from "@/components/brand/money-text";
 import { EmptyState } from "@/components/brand/states";
 import {
@@ -31,7 +33,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AccountStatus, CardStatus, KycStatus, RiskLevel, UserStatus } from "@prisma/client";
+import {
+  AccountStatus,
+  CardStatus,
+  Currency,
+  KycStatus,
+  RiskLevel,
+  UserStatus,
+} from "@prisma/client";
 import { CustomerActionsClient } from "./CustomerActionsClient";
 
 type BadgeVariant = "default" | "secondary" | "success" | "warning" | "destructive" | "outline";
@@ -77,6 +86,13 @@ function riskVariant(level: RiskLevel): BadgeVariant {
       return "secondary";
   }
 }
+
+const RISK_ACCENT: Record<RiskLevel, "violet" | "cyan" | "emerald" | "blue"> = {
+  LOW: "emerald",
+  MEDIUM: "cyan",
+  HIGH: "violet",
+  CRITICAL: "violet",
+};
 
 function accountStatusVariant(status: AccountStatus): BadgeVariant {
   switch (status) {
@@ -148,8 +164,24 @@ export default async function CustomerDetailPage({
     ? `${profile.firstName} ${profile.lastName}`.trim()
     : user.email;
 
+  // Per-currency balance totals across this customer's accounts (cannot sum
+  // across currencies — surface the largest pot as the headline figure).
+  const totalsByCurrency = new Map<Currency, bigint>();
+  for (const a of user.accounts) {
+    totalsByCurrency.set(
+      a.currency,
+      (totalsByCurrency.get(a.currency) ?? 0n) + a.balanceCached,
+    );
+  }
+  const sortedTotals = [...totalsByCurrency.entries()].sort((a, b) =>
+    b[1] > a[1] ? 1 : -1,
+  );
+  const headlineTotal = sortedTotals.length > 0 ? sortedTotals[0] : undefined;
+  const openAlerts = user.amlAlerts.filter((a) => a.status !== "CLOSED").length;
+  const activeCards = user.cards.filter((c) => c.status === CardStatus.ACTIVE).length;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
         <Link href="/admin/customers">
           <ArrowLeft className="h-4 w-4" /> Back to customers
@@ -170,8 +202,12 @@ export default async function CustomerDetailPage({
               </h1>
               <Badge variant={userStatusVariant(user.status)}>{user.status}</Badge>
             </div>
-            <p className="mt-0.5 text-sm text-white/70">{user.email}</p>
-            <p className="mt-1 font-mono text-[11px] text-white/50">{user.id}</p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-white/70">
+              <Mail className="h-3.5 w-3.5" /> {user.email}
+            </p>
+            <p className="mt-1 flex items-center gap-1.5 font-mono text-[11px] text-white/50">
+              <Hash className="h-3 w-3" /> {user.id}
+            </p>
           </div>
         </div>
         <div className="relative z-10">
@@ -182,6 +218,52 @@ export default async function CustomerDetailPage({
           />
         </div>
       </section>
+
+      {/* Snapshot stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          accent="violet"
+          index={0}
+          label="Total balance"
+          value={
+            headlineTotal ? (
+              <MoneyText amount={headlineTotal[1]} currency={headlineTotal[0]} withSymbol />
+            ) : (
+              "—"
+            )
+          }
+          hint={
+            sortedTotals.length > 1
+              ? `${headlineTotal?.[0]} · +${sortedTotals.length - 1} more`
+              : (headlineTotal?.[0] ?? "no accounts")
+          }
+          icon={<Wallet className="h-4 w-4" />}
+        />
+        <StatCard
+          accent="blue"
+          index={1}
+          label="Cards"
+          value={user.cards.length.toLocaleString()}
+          hint={`${activeCards} active`}
+          icon={<CreditCard className="h-4 w-4" />}
+        />
+        <StatCard
+          accent={risk ? RISK_ACCENT[risk.level] : "cyan"}
+          index={2}
+          label="Risk score"
+          value={risk ? risk.score.toString() : "—"}
+          hint={risk ? risk.level : "no score"}
+          icon={<GaugeCircle className="h-4 w-4" />}
+        />
+        <StatCard
+          accent="violet"
+          index={3}
+          label="AML alerts"
+          value={user.amlAlerts.length.toLocaleString()}
+          hint={`${openAlerts} open`}
+          icon={<Siren className="h-4 w-4" />}
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Identity */}
@@ -372,7 +454,11 @@ export default async function CustomerDetailPage({
                         {a.type} · ••{a.displayNumber}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{a.currency}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {a.currency}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={accountStatusVariant(a.status)}>{a.status}</Badge>
                     </TableCell>
@@ -383,8 +469,8 @@ export default async function CustomerDetailPage({
                         className="text-sm text-muted-foreground"
                       />
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      <MoneyText amount={a.balanceCached} currency={a.currency} />
+                    <TableCell className="text-right font-semibold">
+                      <MoneyText amount={a.balanceCached} currency={a.currency} withSymbol />
                     </TableCell>
                   </TableRow>
                 ))}

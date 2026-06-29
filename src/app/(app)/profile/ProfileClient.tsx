@@ -23,16 +23,15 @@ import {
   Megaphone,
   Database,
   Wallet,
+  ArrowRight,
 } from "lucide-react";
 import { KycStatus } from "@prisma/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -69,36 +68,45 @@ const SOURCE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
+type Accent = "violet" | "cyan" | "emerald" | "blue";
+
+const ACCENT_CHIP: Record<Accent, string> = {
+  violet: "from-brand-violet/30 to-brand-violet/5 text-brand-violet",
+  cyan: "from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan",
+  emerald: "from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald",
+  blue: "from-brand-blue/30 to-brand-blue/5 text-brand-blue",
+};
+
 function kycBadge(status: KycStatus) {
   switch (status) {
     case KycStatus.APPROVED:
       return (
-        <Badge variant="success">
-          <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
+        <Badge variant="success" className="gap-1">
+          <CheckCircle2 className="h-3 w-3" /> Verified
         </Badge>
       );
     case KycStatus.IN_REVIEW:
       return (
-        <Badge variant="warning">
-          <Search className="mr-1 h-3 w-3" /> In review
+        <Badge variant="warning" className="gap-1">
+          <Search className="h-3 w-3" /> In review
         </Badge>
       );
     case KycStatus.PENDING:
       return (
-        <Badge variant="warning">
-          <Clock className="mr-1 h-3 w-3" /> Pending
+        <Badge variant="warning" className="gap-1">
+          <Clock className="h-3 w-3" /> Pending
         </Badge>
       );
     case KycStatus.REJECTED:
       return (
-        <Badge variant="destructive">
-          <XCircle className="mr-1 h-3 w-3" /> Rejected
+        <Badge variant="destructive" className="gap-1">
+          <XCircle className="h-3 w-3" /> Rejected
         </Badge>
       );
     default:
       return (
-        <Badge variant="secondary">
-          <Clock className="mr-1 h-3 w-3" /> Not started
+        <Badge variant="secondary" className="gap-1">
+          <Clock className="h-3 w-3" /> Not started
         </Badge>
       );
   }
@@ -134,64 +142,77 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Identity hero */}
-      <motion.div
+    <div className="space-y-8">
+      {/* Identity hero — premium-surface, masked-aware */}
+      <motion.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 120, damping: 18 }}
+        className="premium-surface ring-glow shine relative overflow-hidden p-6 text-white sm:p-8"
       >
-        <Card className="ring-glow overflow-hidden">
-          <div className="shine relative h-28 w-full bg-brand-gradient bg-[length:200%_200%]">
-            <div className="bg-grid absolute inset-0 opacity-30" />
-          </div>
-          <CardContent className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-end gap-4">
-              <Avatar className="h-24 w-24 border-4 border-card shadow-glow ring-1 ring-white/10">
-                <AvatarFallback className="bg-brand-gradient text-2xl font-semibold text-white">
-                  {initials.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="pb-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-display text-2xl font-semibold tracking-tight">{fullName}</h2>
-                  {kycBadge(profile.kycStatus)}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {revealSensitive ? profile.email : profile.emailMasked}
-                </p>
+        <div className="bg-grid pointer-events-none absolute inset-0 opacity-20" />
+        <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-5">
+            <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 font-display text-2xl font-semibold shadow-glow backdrop-blur-sm sm:h-24 sm:w-24 sm:text-3xl">
+              {initials.toUpperCase()}
+              <span className="absolute -bottom-1.5 -right-1.5 grid h-7 w-7 place-items-center rounded-full border-2 border-[hsl(222_47%_9%)] bg-brand-gradient text-white shadow-glow">
+                <ShieldCheck className="h-3.5 w-3.5" />
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{fullName}</h2>
+                {kycBadge(profile.kycStatus)}
+              </div>
+              <p className="font-mono text-sm text-white/70">
+                {revealSensitive ? profile.email : profile.emailMasked}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-white/55">
+                {profile.country && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-2.5 py-0.5 backdrop-blur">
+                    <Globe className="h-3 w-3" /> {profile.country}
+                  </span>
+                )}
+                {profile.occupation && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-2.5 py-0.5 backdrop-blur">
+                    <Briefcase className="h-3 w-3" /> {profile.occupation}
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2 pb-1">
-              <Button variant="outline" size="sm" onClick={() => setRevealSensitive((v) => !v)}>
-                {revealSensitive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {revealSensitive ? "Hide details" : "Reveal details"}
-              </Button>
-              <Button variant="gradient" size="sm" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-4 w-4" /> Edit profile
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-white/20 bg-white/5 text-white hover:bg-white/15"
+              onClick={() => setRevealSensitive((v) => !v)}
+            >
+              {revealSensitive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {revealSensitive ? "Hide details" : "Reveal details"}
+            </Button>
+            <Button variant="gradient" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4" /> Edit profile
+            </Button>
+          </div>
+        </div>
+      </motion.section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Personal data */}
-        <Card className="ring-glow lift">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display text-base">
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
-                <IdCard className="h-4 w-4" />
-              </span>
-              Personal information
-            </CardTitle>
-            <CardDescription>The details we hold for your identity record.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1">
+        <PanelCard
+          icon={<IdCard className="h-4 w-4" />}
+          accent="violet"
+          title="Personal information"
+          description="The details we hold for your identity record."
+          index={0}
+        >
+          <div className="space-y-1">
             <Field
               icon={<Mail className="h-4 w-4" />}
               label="Email"
               value={revealSensitive ? profile.email : profile.emailMasked}
+              mono
             />
             <Field
               icon={<Phone className="h-4 w-4" />}
@@ -203,6 +224,7 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
                     : profile.phoneMasked
                   : "Not provided"
               }
+              mono={!!profile.phone}
             />
             <Field
               icon={<Calendar className="h-4 w-4" />}
@@ -214,6 +236,7 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
                     : "••••-••-••"
                   : "Not provided"
               }
+              mono={!!profile.dateOfBirth}
             />
             <Field
               icon={<Globe className="h-4 w-4" />}
@@ -234,49 +257,41 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
                   : "Not provided"
               }
             />
-          </CardContent>
-        </Card>
+          </div>
+        </PanelCard>
 
         {/* Address + KYC */}
         <div className="space-y-6">
-          <Card className="ring-glow lift">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display text-base">
-                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan ring-1 ring-white/10">
-                  <MapPin className="h-4 w-4" />
-                </span>
-                Residential address
-              </CardTitle>
-              <CardDescription>Where you live. Used for compliance and statements.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {addressLines.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No address on file yet. Complete identity verification to add one.
-                </p>
-              ) : (
-                <address className="not-italic text-sm leading-relaxed">
-                  {addressLines.map((line, i) => (
-                    <div key={i} className={i === 0 ? "font-medium" : "text-muted-foreground"}>
-                      {line}
-                    </div>
-                  ))}
-                </address>
-              )}
-            </CardContent>
-          </Card>
+          <PanelCard
+            icon={<MapPin className="h-4 w-4" />}
+            accent="cyan"
+            title="Residential address"
+            description="Where you live. Used for compliance and statements."
+            index={1}
+          >
+            {addressLines.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
+                No address on file yet. Complete identity verification to add one.
+              </div>
+            ) : (
+              <address className="not-italic text-sm leading-relaxed">
+                {addressLines.map((line, i) => (
+                  <div key={i} className={i === 0 ? "font-medium" : "text-muted-foreground"}>
+                    {line}
+                  </div>
+                ))}
+              </address>
+            )}
+          </PanelCard>
 
-          <Card className="ring-glow lift">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display text-base">
-                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
-                  <ShieldCheck className="h-4 w-4" />
-                </span>
-                Identity verification
-              </CardTitle>
-              <CardDescription>Your KYC standing with the bank.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between gap-3">
+          <PanelCard
+            icon={<ShieldCheck className="h-4 w-4" />}
+            accent="emerald"
+            title="Identity verification"
+            description="Your KYC standing with the bank."
+            index={2}
+          >
+            <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="text-sm font-medium">Current status</div>
                 <p className="text-xs text-muted-foreground">
@@ -289,59 +304,56 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
                 {kycBadge(profile.kycStatus)}
                 {profile.kycStatus !== KycStatus.APPROVED && (
                   <Button asChild variant="gradient" size="sm">
-                    <a href="/kyc">Go to verification</a>
+                    <a href="/kyc">
+                      Verify <ArrowRight className="h-4 w-4" />
+                    </a>
                   </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </PanelCard>
         </div>
       </div>
 
       {/* Privacy & consent */}
-      <Card className="ring-glow lift">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-display text-base">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-blue/30 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
-              <Database className="h-4 w-4" />
-            </span>
-            Privacy &amp; consent
-          </CardTitle>
-          <CardDescription>
-            Decide how we use your data. Changes apply instantly (sandbox — stored locally).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <PanelCard
+        icon={<Database className="h-4 w-4" />}
+        accent="blue"
+        title="Privacy & consent"
+        description="Decide how we use your data. Changes apply instantly (sandbox — stored locally)."
+        index={3}
+      >
+        <div className="space-y-3">
           <ConsentRow
-            icon={<Bell className="h-4 w-4 text-muted-foreground" />}
+            icon={<Bell className="h-4 w-4" />}
             title="Transaction alerts"
             description="Get notified the moment money moves on your account."
             checked={consent.transactionAlerts}
             onChange={(v) => setConsentValue("transactionAlerts", v)}
           />
           <ConsentRow
-            icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
+            icon={<BarChart3 className="h-4 w-4" />}
             title="Product analytics"
             description="Help us improve by sharing anonymous usage data."
             checked={consent.productAnalytics}
             onChange={(v) => setConsentValue("productAnalytics", v)}
           />
           <ConsentRow
-            icon={<Megaphone className="h-4 w-4 text-muted-foreground" />}
+            icon={<Megaphone className="h-4 w-4" />}
             title="Marketing communications"
             description="Receive offers and product news. Off by default."
             checked={consent.marketing}
             onChange={(v) => setConsentValue("marketing", v)}
           />
           <ConsentRow
-            icon={<Database className="h-4 w-4 text-muted-foreground" />}
+            icon={<Database className="h-4 w-4" />}
             title="Third-party data sharing"
             description="Allow trusted partners to access limited, aggregated data."
             checked={consent.dataSharing}
             onChange={(v) => setConsentValue("dataSharing", v)}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </PanelCard>
 
       <EditProfileDialog
         open={editOpen}
@@ -353,22 +365,64 @@ export function ProfileClient({ initial }: { initial: ProfileVM }) {
   );
 }
 
+function PanelCard({
+  icon,
+  accent,
+  title,
+  description,
+  index,
+  children,
+}: {
+  icon: React.ReactNode;
+  accent: Accent;
+  title: string;
+  description: string;
+  index: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
+      className="glass-card ring-glow lift relative overflow-hidden rounded-3xl p-6"
+    >
+      <div className="mb-5 flex items-start gap-3">
+        <span
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br ring-1 ring-white/10 ${ACCENT_CHIP[accent]}`}
+        >
+          {icon}
+        </span>
+        <div>
+          <h2 className="font-display text-base font-semibold tracking-tight">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {children}
+    </motion.div>
+  );
+}
+
 function Field({
   icon,
   label,
   value,
+  mono = false,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | null;
+  mono?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border/40 py-3 last:border-0">
+    <div className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-3 transition-colors last:border-0 hover:bg-muted/40">
       <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <span className="text-muted-foreground/80">{icon}</span>
+        <span className="text-muted-foreground/70">{icon}</span>
         {label}
       </div>
-      <span className="text-right text-sm font-medium">{value ?? "Not provided"}</span>
+      <span className={`text-right text-sm font-medium ${mono ? "font-mono tabular-nums" : ""}`}>
+        {value ?? "Not provided"}
+      </span>
     </div>
   );
 }
@@ -387,9 +441,19 @@ function ConsentRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 transition-colors hover:border-brand-violet/30 hover:bg-card/70">
+    <div
+      className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition-colors ${
+        checked ? "border-primary/30 bg-primary/[0.04]" : "border-border/60"
+      }`}
+    >
       <div className="flex items-start gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/80 text-muted-foreground ring-1 ring-white/5">
+        <div
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ring-1 transition-colors ${
+            checked
+              ? "bg-primary/15 text-primary ring-primary/20"
+              : "bg-muted text-muted-foreground ring-white/5"
+          }`}
+        >
           {icon}
         </div>
         <div>
@@ -478,7 +542,7 @@ function EditProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
+          <DialogTitle className="font-display tracking-tight">Edit profile</DialogTitle>
           <DialogDescription>
             Update your contact details and address. Changes are sandbox-only.
           </DialogDescription>

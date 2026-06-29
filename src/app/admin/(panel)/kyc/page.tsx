@@ -1,7 +1,8 @@
-import { FileCheck2, Clock, CheckCircle2 } from "lucide-react";
+import { FileCheck2, Clock, CheckCircle2, Layers, AlertTriangle } from "lucide-react";
 import { requirePageAdmin } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/brand/page-header";
+import { StatCard } from "@/components/brand/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/brand/states";
 import { KycStatus } from "@prisma/client";
@@ -31,6 +32,7 @@ export default async function KycReviewPage() {
 
   const pendingCount = applications.filter((a) => a.status === KycStatus.PENDING).length;
   const inReviewCount = applications.filter((a) => a.status === KycStatus.IN_REVIEW).length;
+  const pepCount = applications.filter((a) => a.declaredPepStatus).length;
 
   const views: KycApplicationView[] = applications.map((app) => {
     const p = app.user.profile;
@@ -75,29 +77,70 @@ export default async function KycReviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="KYC Review"
+        title={
+          <>
+            KYC <span className="text-gradient">Review</span>
+          </>
+        }
         description="Review identity verification applications. Approving provisions the customer's accounts."
         actions={
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-3 py-1.5 text-sm text-warning">
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-warning/30 bg-warning/10 px-3 py-1.5 text-sm font-medium text-warning backdrop-blur">
               <Clock className="h-4 w-4" />
-              {pendingCount} pending
+              <span className="tabular-nums">{pendingCount}</span> pending
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur">
               <FileCheck2 className="h-4 w-4" />
-              {inReviewCount} in review
+              <span className="tabular-nums">{inReviewCount}</span> in review
             </span>
           </div>
         }
       />
 
+      {views.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            accent="violet"
+            index={0}
+            label="In queue"
+            value={views.length.toLocaleString()}
+            hint="awaiting a decision"
+            icon={<Layers className="h-4 w-4" />}
+          />
+          <StatCard
+            accent="cyan"
+            index={1}
+            label="New"
+            value={pendingCount.toLocaleString()}
+            hint="not yet opened"
+            icon={<Clock className="h-4 w-4" />}
+          />
+          <StatCard
+            accent="blue"
+            index={2}
+            label="In review"
+            value={inReviewCount.toLocaleString()}
+            hint="info requested"
+            icon={<FileCheck2 className="h-4 w-4" />}
+          />
+          <StatCard
+            accent="emerald"
+            index={3}
+            label="PEP flagged"
+            value={pepCount.toLocaleString()}
+            hint="enhanced due diligence"
+            icon={<AlertTriangle className="h-4 w-4" />}
+          />
+        </div>
+      )}
+
       {views.length === 0 ? (
-        <Card>
+        <Card className="glass-card">
           <CardContent className="py-4">
             <EmptyState
               title="Queue is clear"
               description="No applications are awaiting review. New submissions will appear here."
-              icon={<CheckCircle2 className="h-6 w-6" />}
+              icon={<CheckCircle2 className="h-6 w-6 text-success" />}
             />
           </CardContent>
         </Card>
