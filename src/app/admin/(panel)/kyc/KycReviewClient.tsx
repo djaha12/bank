@@ -237,7 +237,7 @@ export function KycReviewClient({ application }: { application: KycApplicationVi
 
         {/* Documents (mock) */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <FileText className="h-3.5 w-3.5" /> Documents
             <span className="font-normal normal-case text-muted-foreground/70">
               (sandbox — no real binaries stored)
@@ -247,10 +247,12 @@ export function KycReviewClient({ application }: { application: KycApplicationVi
             {application.documents.map((d) => (
               <div
                 key={d.type}
-                className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3"
+                className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-3 transition-colors hover:border-border hover:bg-muted/40"
               >
                 <div className="flex items-center gap-2.5">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground ring-1 ring-inset ring-border/40">
+                    <FileText className="h-4 w-4" />
+                  </span>
                   <div>
                     <div className="text-sm font-medium">{d.type.replaceAll("_", " ")}</div>
                     <div className="text-xs text-muted-foreground">{d.fileName}</div>
