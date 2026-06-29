@@ -27,6 +27,9 @@ export function Reveal({
       variants={fadeUp}
       initial="hidden"
       whileInView="show"
+      // Also animate on mount so content is guaranteed visible even if the
+      // IntersectionObserver is slow to fire (and for reliable SSR/screenshots).
+      animate="show"
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
