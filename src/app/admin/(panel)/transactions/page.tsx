@@ -2,6 +2,8 @@ import { ReceiptText, CheckCircle2, Clock, XCircle, RotateCcw } from "lucide-rea
 import { requirePageAdmin } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/brand/page-header";
+import { StatCard } from "@/components/brand/stat-card";
+import { AnimatedNumber } from "@/components/brand/animated-number";
 import { TransactionStatus } from "@prisma/client";
 import { TransactionsClient, type TransactionRow } from "./TransactionsClient";
 
