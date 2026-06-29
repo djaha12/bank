@@ -77,10 +77,14 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="System Settings"
+        title={
+          <>
+            System <span className="text-gradient">settings</span>
+          </>
+        }
         description="Sandbox configuration, pricing, FX rates and ledger health. Read-only where backed by seeds."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-1.5 text-sm text-warning">
+          <span className="inline-flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-1.5 text-sm font-medium text-warning backdrop-blur">
             <FlaskConical className="h-4 w-4" />
             Sandbox
           </span>
@@ -89,10 +93,13 @@ export default async function AdminSettingsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Environment toggles (mock) */}
-        <Card className="lg:col-span-2">
+        <Card className="glass-card lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5 text-primary" /> Environment
+            <CardTitle className="flex items-center gap-2 font-display">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                <SettingsIcon className="h-4 w-4" />
+              </span>
+              Environment
             </CardTitle>
             <CardDescription>Runtime flags for this sandbox deployment.</CardDescription>
           </CardHeader>
@@ -125,10 +132,13 @@ export default async function AdminSettingsPage() {
         </Card>
 
         {/* System health */}
-        <Card>
+        <Card className="glass-card ring-glow">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-success" /> System health
+            <CardTitle className="flex items-center gap-2 font-display">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
+                <Activity className="h-4 w-4" />
+              </span>
+              System health
             </CardTitle>
             <CardDescription>Sandbox infrastructure status.</CardDescription>
           </CardHeader>

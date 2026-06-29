@@ -81,7 +81,7 @@ export default async function AdminRolesPage() {
 
       {/* Permission matrix */}
       {permissions.length === 0 || roles.length === 0 ? (
-        <Card>
+        <Card className="glass-card">
           <CardContent className="py-4">
             <EmptyState
               title="No RBAC catalogue"
@@ -91,9 +91,14 @@ export default async function AdminRolesPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
+        <Card className="glass-card overflow-hidden">
           <CardHeader>
-            <CardTitle>Permission matrix</CardTitle>
+            <CardTitle className="flex items-center gap-2 font-display">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow">
+                <KeyRound className="h-4 w-4" />
+              </span>
+              Permission matrix
+            </CardTitle>
             <CardDescription>
               Which capabilities each role grants, grouped by domain.
             </CardDescription>

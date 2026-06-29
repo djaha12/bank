@@ -10,10 +10,16 @@ import {
   TrendingUp,
   ShieldX,
   Users,
+  ShieldAlert,
+  ShieldHalf,
+  ShieldCheck,
+  ListChecks,
 } from "lucide-react";
 import { requirePageAdmin } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/brand/page-header";
+import { StatCard } from "@/components/brand/stat-card";
+import { AnimatedNumber } from "@/components/brand/animated-number";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/brand/states";
