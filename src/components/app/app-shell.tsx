@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LogOut, Bell } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
+import { NotificationsBell } from "@/components/app/notifications-bell";
 import { cn, initials as makeInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -131,9 +132,7 @@ export function AppShell({
             <Menu className="h-5 w-5" />
           </Button>
           <div className="ml-auto flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" aria-label="Notifications">
-              <Bell className="h-4 w-4" />
-            </Button>
+            {kind === "customer" && <NotificationsBell />}
             <ModeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
