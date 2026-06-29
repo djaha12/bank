@@ -57,9 +57,10 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Brand accent ramp — electric blue / emerald / violet
+        // Brand accent ramp — indigo / cyan / emerald / violet duotone
         brand: {
           blue: "hsl(var(--brand-blue))",
+          cyan: "hsl(var(--brand-cyan))",
           emerald: "hsl(var(--brand-emerald))",
           violet: "hsl(var(--brand-violet))",
         },
@@ -77,17 +78,19 @@ const config: Config = {
       },
       backgroundImage: {
         "brand-gradient":
-          "linear-gradient(135deg, hsl(var(--brand-violet)) 0%, hsl(var(--brand-blue)) 50%, hsl(var(--brand-emerald)) 100%)",
+          "linear-gradient(135deg, hsl(var(--brand-violet)) 0%, hsl(var(--brand-blue)) 45%, hsl(var(--brand-cyan)) 100%)",
+        "brand-gradient-emerald":
+          "linear-gradient(135deg, hsl(var(--brand-blue)) 0%, hsl(var(--brand-emerald)) 100%)",
         "card-premium":
-          "linear-gradient(135deg, rgba(99,102,241,0.16) 0%, rgba(56,189,248,0.10) 45%, rgba(16,185,129,0.12) 100%)",
+          "linear-gradient(135deg, rgba(124,58,237,0.20) 0%, rgba(56,189,248,0.12) 45%, rgba(16,185,129,0.14) 100%)",
         "radial-glow":
-          "radial-gradient(60% 60% at 50% 0%, rgba(56,189,248,0.18) 0%, rgba(0,0,0,0) 70%)",
+          "radial-gradient(60% 50% at 50% 0%, hsl(var(--brand-violet) / 0.18) 0%, transparent 70%)",
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(255,255,255,0.04), 0 18px 40px -12px rgba(56,189,248,0.30)",
-        card: "0 1px 2px rgba(0,0,0,0.06), 0 8px 24px -12px rgba(0,0,0,0.25)",
-        "card-dark":
-          "0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px -16px rgba(0,0,0,0.7)",
+        glow: "0 0 0 1px rgba(255,255,255,0.05), 0 24px 60px -24px hsl(var(--brand-violet) / 0.45)",
+        "glow-cyan": "0 0 0 1px rgba(255,255,255,0.05), 0 24px 60px -24px hsl(var(--brand-cyan) / 0.45)",
+        card: "0 1px 2px rgba(0,0,0,0.06), 0 10px 30px -16px rgba(0,0,0,0.28)",
+        "card-dark": "0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 60px -28px rgba(2,6,23,0.8)",
       },
       keyframes: {
         "accordion-down": {
@@ -98,19 +101,32 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        shimmer: {
-          "100%": { transform: "translateX(100%)" },
-        },
+        shimmer: { "100%": { transform: "translateX(100%)" } },
         "fade-up": {
-          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        float: {
+          "0%,100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+        "glow-pulse": {
+          "0%,100%": { opacity: "0.6" },
+          "50%": { opacity: "1" },
+        },
+        "gradient-pan": {
+          "0%,100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 1.6s infinite",
-        "fade-up": "fade-up 0.4s ease-out both",
+        "fade-up": "fade-up 0.5s cubic-bezier(0.22,1,0.36,1) both",
+        float: "float 6s ease-in-out infinite",
+        "glow-pulse": "glow-pulse 3s ease-in-out infinite",
+        "gradient-pan": "gradient-pan 6s ease infinite",
       },
     },
   },

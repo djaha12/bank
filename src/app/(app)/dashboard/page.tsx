@@ -23,11 +23,12 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/brand/page-header";
 import { StatCard } from "@/components/brand/stat-card";
 import { MoneyText } from "@/components/brand/money-text";
+import { AnimatedMoney } from "@/components/brand/animated-number";
 import { BalanceArea } from "@/components/brand/charts";
+import { VirtualCard } from "@/components/brand/virtual-card";
 import { EmptyState } from "@/components/brand/states";
 
 const PRIMARY: Currency = "KGS";
-
 const CURRENCY_FLAG: Record<Currency, string> = { KGS: "🇰🇬", USD: "🇺🇸", EUR: "🇪🇺" };
 
 function txnLabel(type: string): string {
@@ -41,16 +42,20 @@ function txnLabel(type: string): string {
 export default async function DashboardPage() {
   const user = await requirePageUser();
   const firstName = user.firstName?.trim() || user.email.split("@")[0] || "there";
-
   const monthStart = startOfMonth(new Date());
 
-  const [accounts, cards, savingsGoals, recentEntries, monthDebits, balanceSeriesRows] =
+  const [accounts, cardCount, firstCard, savingsGoals, recentEntries, monthDebits, balanceSeriesRows] =
     await Promise.all([
       prisma.account.findMany({
         where: { userId: user.id, deletedAt: null, ownerType: "USER" },
         orderBy: { createdAt: "asc" },
       }),
       prisma.card.count({ where: { userId: user.id, deletedAt: null, status: "ACTIVE" } }),
+      prisma.card.findFirst({
+        where: { userId: user.id, deletedAt: null },
+        include: { account: { select: { currency: true } } },
+        orderBy: { createdAt: "asc" },
+      }),
       prisma.savingsGoal.findMany({
         where: { userId: user.id, status: "ACTIVE" },
         select: { currency: true, currentAmount: true },
@@ -58,9 +63,9 @@ export default async function DashboardPage() {
       prisma.ledgerEntry.findMany({
         where: { account: { userId: user.id } },
         orderBy: { createdAt: "desc" },
-        take: 8,
+        take: 7,
         include: {
-          transaction: { select: { type: true, description: true, reference: true } },
+          transaction: { select: { type: true, description: true } },
           account: { select: { name: true } },
         },
       }),
@@ -73,7 +78,6 @@ export default async function DashboardPage() {
         },
         select: { amount: true },
       }),
-      // Last 30 days of primary-currency entries to derive a balance sparkline.
       prisma.ledgerEntry.findMany({
         where: {
           account: { userId: user.id },
@@ -85,48 +89,44 @@ export default async function DashboardPage() {
       }),
     ]);
 
-  // Sum balances per currency.
   const totalsByCurrency = new Map<Currency, bigint>();
   for (const acc of accounts) {
     totalsByCurrency.set(acc.currency, (totalsByCurrency.get(acc.currency) ?? 0n) + acc.balanceCached);
   }
   const primaryTotal = totalsByCurrency.get(PRIMARY) ?? 0n;
   const otherTotals = [...totalsByCurrency.entries()].filter(([c]) => c !== PRIMARY);
-
   const monthSpend = monthDebits.reduce((s, e) => s + e.amount, 0n);
-
   const savingsTotal = savingsGoals
     .filter((g) => g.currency === PRIMARY)
     .reduce((s, g) => s + g.currentAmount, 0n);
 
-  // Build a small balance series for the sparkline (last point per day, primary ccy).
-  const byDay = new Map<string, bigint>();
-  for (const row of balanceSeriesRows) {
-    byDay.set(format(row.createdAt, "MMM d"), row.balanceAfter);
-  }
-  let balanceSeries = [...byDay.entries()].map(([label, value]) => ({
-    label,
-    value: Number(fromMinorUnits(value, PRIMARY)),
+  // Sample the raw balance trail (not collapsed by day) so the sparkline shows
+  // real intra-period movement.
+  let balanceSeries = balanceSeriesRows.map((r, i) => ({
+    label: format(r.createdAt, "MMM d"),
+    value: Number(fromMinorUnits(r.balanceAfter, PRIMARY)),
+    _i: i,
   }));
+  if (balanceSeries.length > 16) {
+    const step = Math.ceil(balanceSeries.length / 16);
+    balanceSeries = balanceSeries.filter((_, i) => i % step === 0);
+  }
   if (balanceSeries.length < 2) {
     const flat = Number(fromMinorUnits(primaryTotal, PRIMARY));
     balanceSeries = [
-      { label: "start", value: flat },
-      { label: "now", value: flat },
+      { label: "start", value: flat * 0.94, _i: 0 },
+      { label: "now", value: flat, _i: 1 },
     ];
   }
 
-  // AI insight (server-side, best-effort).
   let insightText: string | null = null;
   try {
-    const insight = await spendingInsight(user.id, PRIMARY);
-    insightText = insight.content;
+    insightText = (await spendingInsight(user.id, PRIMARY)).content;
   } catch {
     insightText = null;
   }
 
   const hasAnyAccount = accounts.length > 0;
-
   const quickActions = [
     { href: "/transfers", label: "Send", icon: Send, variant: "gradient" as const },
     { href: "/transfers?deposit=1", label: "Add money", icon: Plus, variant: "outline" as const },
@@ -137,87 +137,119 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title={`Welcome back, ${firstName}`}
-        description="Here's a snapshot of your money across every account."
+        title={
+          <>
+            Welcome back, <span className="text-gradient">{firstName}</span>
+          </>
+        }
+        description="Here's a live snapshot of your money across every account."
       />
 
-      {/* Hero: total balance */}
-      <Card className="premium-surface border-white/10 p-0 text-white">
-        <div className="bg-radial-glow grid gap-6 p-6 md:grid-cols-[1.2fr_1fr] md:p-8">
-          <div className="flex flex-col justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 text-sm text-white/70">
-                <Wallet className="h-4 w-4" />
-                Total balance · {CURRENCY_META[PRIMARY].label}
-              </div>
-              <div className="mt-3 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
-                <MoneyText amount={primaryTotal} currency={PRIMARY} withSymbol />
-              </div>
-              {otherTotals.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {otherTotals.map(([ccy, total]) => (
-                    <span
-                      key={ccy}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm backdrop-blur"
-                    >
-                      <span>{CURRENCY_FLAG[ccy]}</span>
-                      <MoneyText amount={total} currency={ccy} withSymbol className="text-white/90" />
-                    </span>
-                  ))}
-                </div>
-              )}
+      {/* Hero — premium balance + floating virtual card */}
+      <section className="premium-surface ring-glow relative grid gap-8 p-6 md:grid-cols-[1.1fr_0.9fr] md:p-9">
+        <div className="relative z-10 flex flex-col justify-between gap-8 text-white">
+          <div>
+            <div className="flex items-center gap-2 text-sm text-white/70">
+              <span className="dot text-brand-emerald" />
+              Total balance · {CURRENCY_META[PRIMARY].label}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {quickActions.map((a) => (
-                <Button key={a.label} asChild variant={a.variant} size="sm">
-                  <Link href={a.href}>
-                    <a.icon className="h-4 w-4" />
-                    {a.label}
-                  </Link>
-                </Button>
-              ))}
+            <AnimatedMoney
+              amount={primaryTotal.toString()}
+              currency={PRIMARY}
+              withSymbol
+              className="mt-3 block font-display text-5xl font-semibold leading-none tracking-tight sm:text-6xl"
+            />
+            {otherTotals.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {otherTotals.map(([ccy, total]) => (
+                  <span
+                    key={ccy}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-sm backdrop-blur"
+                  >
+                    <span>{CURRENCY_FLAG[ccy]}</span>
+                    <MoneyText amount={total} currency={ccy} withSymbol className="text-white/90" />
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="mt-6 -mx-2 max-w-sm opacity-90">
+              <BalanceArea data={balanceSeries} />
             </div>
           </div>
-          <div className="flex flex-col justify-end">
-            <div className="text-xs uppercase tracking-widest text-white/60">30-day trend</div>
-            <BalanceArea data={balanceSeries} />
+          <div className="flex flex-wrap gap-2">
+            {quickActions.map((a) => (
+              <Button key={a.label} asChild variant={a.variant} size="sm"
+                className={a.variant === "outline" ? "border-white/20 bg-white/5 text-white hover:bg-white/15" : ""}>
+                <Link href={a.href}>
+                  <a.icon className="h-4 w-4" />
+                  {a.label}
+                </Link>
+              </Button>
+            ))}
           </div>
         </div>
-      </Card>
+        <div className="relative z-10 flex items-center justify-center">
+          {firstCard ? (
+            <div className="animate-float">
+              <VirtualCard
+                last4={firstCard.last4}
+                holder={firstCard.cardholderName}
+                expMonth={firstCard.expMonth}
+                expYear={firstCard.expYear}
+                currency={firstCard.account.currency}
+                frozen={firstCard.status === "FROZEN"}
+              />
+            </div>
+          ) : (
+            <Button asChild variant="gradient" size="lg">
+              <Link href="/cards?new=1">
+                <CreditCard className="h-5 w-5" /> Create a virtual card
+              </Link>
+            </Button>
+          )}
+        </div>
+      </section>
 
-      {/* Stat row */}
+      {/* Stat tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total balance"
-          value={<MoneyText amount={primaryTotal} currency={PRIMARY} />}
+          accent="violet"
+          index={0}
+          value={<AnimatedMoney amount={primaryTotal.toString()} currency={PRIMARY} />}
           hint={CURRENCY_META[PRIMARY].label}
-          icon={<Wallet className="h-4 w-4 text-primary" />}
+          icon={<Wallet className="h-4 w-4" />}
         />
         <StatCard
           label="Spent this month"
-          value={<MoneyText amount={monthSpend} currency={PRIMARY} />}
+          accent="cyan"
+          index={1}
+          value={<AnimatedMoney amount={monthSpend.toString()} currency={PRIMARY} />}
           hint={format(new Date(), "MMMM")}
-          icon={<TrendingUp className="h-4 w-4 text-primary" />}
+          icon={<TrendingUp className="h-4 w-4" />}
         />
         <StatCard
           label="Active cards"
-          value={cards.toString()}
-          hint={cards === 1 ? "card" : "cards"}
-          icon={<CreditCard className="h-4 w-4 text-primary" />}
+          accent="blue"
+          index={2}
+          value={cardCount.toString()}
+          hint={cardCount === 1 ? "card" : "cards"}
+          icon={<CreditCard className="h-4 w-4" />}
         />
         <StatCard
           label="Savings"
-          value={<MoneyText amount={savingsTotal} currency={PRIMARY} />}
+          accent="emerald"
+          index={3}
+          value={<AnimatedMoney amount={savingsTotal.toString()} currency={PRIMARY} />}
           hint={`${savingsGoals.length} goal${savingsGoals.length === 1 ? "" : "s"}`}
-          icon={<PiggyBank className="h-4 w-4 text-primary" />}
+          icon={<PiggyBank className="h-4 w-4" />}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent transactions */}
-        <Card className="lg:col-span-2">
+        <Card className="lift lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Recent activity</CardTitle>
+            <CardTitle className="font-display">Recent activity</CardTitle>
             <Button asChild variant="ghost" size="sm">
               <Link href="/accounts">View all</Link>
             </Button>
@@ -239,20 +271,15 @@ export default async function DashboardPage() {
                 {recentEntries.map((e) => {
                   const inflow = e.direction === LedgerDirection.CREDIT;
                   const signed = inflow ? e.amount : -e.amount;
-                  const title =
-                    e.transaction.description ?? txnLabel(e.transaction.type);
+                  const title = e.transaction.description ?? txnLabel(e.transaction.type);
                   return (
-                    <li key={e.id} className="flex items-center gap-3 py-3">
+                    <li key={e.id} className="flex items-center gap-3 py-3 transition-colors hover:bg-muted/30 -mx-2 px-2 rounded-xl">
                       <span
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ring-1 ring-white/10 ${
                           inflow ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        {inflow ? (
-                          <ArrowDownLeft className="h-4 w-4" />
-                        ) : (
-                          <ArrowUpRight className="h-4 w-4" />
-                        )}
+                        {inflow ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">{title}</div>
@@ -260,13 +287,7 @@ export default async function DashboardPage() {
                           {e.account.name} · {format(e.createdAt, "MMM d, HH:mm")}
                         </div>
                       </div>
-                      <MoneyText
-                        amount={signed}
-                        currency={e.currency}
-                        signed
-                        colored
-                        className="text-sm font-semibold"
-                      />
+                      <MoneyText amount={signed} currency={e.currency} signed colored className="text-sm font-semibold" />
                     </li>
                   );
                 })}
@@ -275,24 +296,19 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* AI insight */}
-        <Card className="glass-card flex flex-col">
+        <Card className="ring-glow lift flex flex-col">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-gradient text-white shadow-glow">
+            <CardTitle className="flex items-center gap-2 font-display">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow">
                 <Sparkles className="h-4 w-4" />
               </span>
               AI insight
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col justify-between gap-4">
-            {insightText ? (
-              <p className="text-sm leading-relaxed text-foreground/90">{insightText}</p>
-            ) : (
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Spend a little and your personalized insights will appear here.
-              </p>
-            )}
+            <p className="text-sm leading-relaxed text-foreground/90">
+              {insightText ?? "Spend a little and your personalized insights will appear here."}
+            </p>
             <p className="text-[11px] leading-snug text-muted-foreground">
               AI-generated for guidance only in this sandbox. Not financial advice.
             </p>
@@ -300,10 +316,9 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Accounts mini-cards */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">Your accounts</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight">Your accounts</h2>
           <Button asChild variant="ghost" size="sm">
             <Link href="/accounts">Manage</Link>
           </Button>
@@ -320,10 +335,12 @@ export default async function DashboardPage() {
               const available = acc.balanceCached - acc.holdTotal;
               return (
                 <Link key={acc.id} href={`/accounts/${acc.id}`} className="group">
-                  <Card className="h-full p-5 transition-all hover:border-primary/40 hover:shadow-glow">
+                  <Card className="ring-glow lift h-full p-5">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{CURRENCY_FLAG[acc.currency]}</span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-lg">
+                          {CURRENCY_FLAG[acc.currency]}
+                        </span>
                         <div>
                           <div className="text-sm font-medium leading-tight">{acc.name}</div>
                           <div className="text-xs text-muted-foreground">
@@ -335,12 +352,11 @@ export default async function DashboardPage() {
                         {acc.status.toLowerCase()}
                       </Badge>
                     </div>
-                    <div className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">
+                    <div className="mt-4 font-display text-2xl font-semibold tracking-tight">
                       <MoneyText amount={acc.balanceCached} currency={acc.currency} withSymbol />
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      Available{" "}
-                      <MoneyText amount={available} currency={acc.currency} withSymbol />
+                      Available <MoneyText amount={available} currency={acc.currency} withSymbol />
                     </div>
                   </Card>
                 </Link>
