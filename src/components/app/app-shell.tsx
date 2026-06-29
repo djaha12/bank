@@ -17,16 +17,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BRAND_ICON, type NavItem } from "@/components/app/nav-config";
+import { ADMIN_NAV, BRAND_ICON, CUSTOMER_NAV } from "@/components/app/nav-config";
 
 export function AppShell({
-  nav,
   user,
   kind,
   logoutHref,
   children,
 }: {
-  nav: NavItem[];
   user: { name: string; email: string; firstName?: string | null; lastName?: string | null };
   kind: "customer" | "admin";
   logoutHref: string;
@@ -35,6 +33,10 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  // Nav (with lucide icon *components*) is resolved INSIDE this client
+  // component — icon functions must never be passed across the server→client
+  // boundary (they are not serializable).
+  const nav = kind === "admin" ? ADMIN_NAV : CUSTOMER_NAV;
 
   const isActive = (href: string) =>
     href === "/dashboard" || href === "/admin" ? pathname === href : pathname.startsWith(href);
