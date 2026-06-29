@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/brand/states";
 import { requirePageUser } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
 import { CardsClient, type CardVM } from "./CardsClient";
+import { PendingHoldsClient, type HoldVM } from "./PendingHoldsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,22 @@ export default async function CardsPage() {
     displayNumber: a.displayNumber,
   }));
 
+  // Pending (uncaptured) card authorizations — the user can capture or release.
+  const heldHolds = await prisma.hold.findMany({
+    where: { account: { userId: user.id }, status: "HELD" },
+    include: { card: { select: { last4: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  const holdVMs: HoldVM[] = heldHolds.map((h) => ({
+    id: h.id,
+    merchantName: h.merchantName,
+    mcc: h.mcc,
+    amount: h.amount.toString(),
+    currency: h.currency,
+    cardLast4: h.card?.last4 ?? "••••",
+    createdAt: h.createdAt.toISOString(),
+  }));
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -96,6 +113,7 @@ export default async function CardsPage() {
           }
         />
       )}
+      <PendingHoldsClient holds={holdVMs} />
     </div>
   );
 }
