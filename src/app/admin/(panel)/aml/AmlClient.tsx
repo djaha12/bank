@@ -444,5 +444,6 @@ function AlertCard({
         </DialogContent>
       </Dialog>
     </Card>
+    </motion.div>
   );
 }

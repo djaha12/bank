@@ -162,12 +162,16 @@ export default async function AdminRiskPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Risk Engine"
+        title={
+          <>
+            Risk <span className="text-gradient">engine</span>
+          </>
+        }
         description="Live customer risk scoring and the rule set powering the AML alerting layer."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            {totalScored.toLocaleString()} scored
+          <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur">
+            <Users className="h-4 w-4 text-brand-violet" />
+            <span className="tabular-nums text-foreground">{totalScored.toLocaleString()}</span> scored
           </span>
         }
       />
@@ -177,24 +181,26 @@ export default async function AdminRiskPage() {
         {LEVEL_ORDER.map((level) => {
           const n = distMap.get(level) ?? 0;
           const pct = totalScored > 0 ? Math.round((n / totalScored) * 100) : 0;
+          const barColor =
+            level === RiskLevel.LOW
+              ? "bg-success"
+              : level === RiskLevel.MEDIUM
+                ? "bg-warning"
+                : "bg-destructive";
           return (
-            <Card key={level} className="p-5">
+            <Card key={level} className="glass-card lift group relative overflow-hidden p-5">
               <div className="flex items-center justify-between">
                 <Badge variant={levelVariant(level)}>{level}</Badge>
-                <span className="text-xs text-muted-foreground tabular-nums">{pct}%</span>
+                <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
               </div>
-              <div className="mt-3 text-2xl font-semibold tabular-nums">{n.toLocaleString()}</div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className={`h-full rounded-full ${
-                    level === RiskLevel.LOW
-                      ? "bg-success"
-                      : level === RiskLevel.MEDIUM
-                        ? "bg-warning"
-                        : "bg-destructive"
-                  }`}
-                  style={{ width: `${pct}%` }}
-                />
+              <div className="mt-3 font-display text-3xl font-semibold tabular-nums">
+                {n.toLocaleString()}
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                customer{n === 1 ? "" : "s"} scored
+              </div>
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
               </div>
             </Card>
           );
@@ -202,10 +208,13 @@ export default async function AdminRiskPage() {
       </div>
 
       {/* Current risk scores */}
-      <Card className="overflow-hidden">
+      <Card className="glass-card overflow-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GaugeCircle className="h-5 w-5 text-primary" /> Current risk scores
+          <CardTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow">
+              <GaugeCircle className="h-4 w-4" />
+            </span>
+            Current risk scores
           </CardTitle>
           <CardDescription>Highest-scoring customers first. Score is 0–100.</CardDescription>
         </CardHeader>
@@ -235,7 +244,7 @@ export default async function AdminRiskPage() {
                       )
                     : [];
                   return (
-                    <TableRow key={s.id}>
+                    <TableRow key={s.id} className="group transition-colors hover:bg-muted/40">
                       <TableCell className="text-sm">
                         {s.user?.email ?? s.userId.slice(0, 8)}
                         <span className="block text-xs text-muted-foreground">
@@ -281,9 +290,9 @@ export default async function AdminRiskPage() {
       </Card>
 
       {/* Rule catalogue */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Rule catalogue</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight">Rule catalogue</h2>
           <p className="text-sm text-muted-foreground">
             The detection rules ({RULE_ORDER.length}) that feed the AML alerting layer, with sandbox
             thresholds.
@@ -293,18 +302,18 @@ export default async function AdminRiskPage() {
           {RULE_ORDER.map((code) => {
             const doc = RULE_DOCS[code];
             return (
-              <Card key={code} className="p-5">
+              <Card key={code} className="glass-card ring-glow lift group relative overflow-hidden p-5">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
                     {doc.icon}
                   </span>
                   <Badge variant={doc.weight} className="text-[10px]">
                     {code.replaceAll("_", " ")}
                   </Badge>
                 </div>
-                <h3 className="mt-3 text-sm font-semibold">{doc.title}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">{doc.description}</p>
-                <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-1.5 text-xs">
+                <h3 className="mt-3 font-display text-sm font-semibold tracking-tight">{doc.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{doc.description}</p>
+                <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 px-2.5 py-1.5 text-xs">
                   <span className="font-medium text-muted-foreground">Threshold: </span>
                   {doc.threshold}
                 </div>
