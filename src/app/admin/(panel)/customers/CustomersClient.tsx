@@ -223,73 +223,119 @@ export function CustomersClient({
           />
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>KYC</TableHead>
-              <TableHead>Risk</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Country</TableHead>
-              <TableHead className="text-right" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id} className="cursor-pointer">
-                <TableCell>
-                  <Link href={`/admin/customers/${r.id}`} className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-xs font-semibold text-white">
-                      {initials(r)}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-1.5 font-medium">
-                        {fullName(r)}
-                        {r.emailVerified && (
-                          <MailCheck className="h-3.5 w-3.5 text-success" aria-label="Email verified" />
-                        )}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {r.email}
-                      </span>
-                    </span>
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={kycVariant(r.kycStatus)}>{r.kycStatus.replaceAll("_", " ")}</Badge>
-                </TableCell>
-                <TableCell>
-                  {r.riskLevel ? (
-                    <Badge variant={riskVariant(r.riskLevel)}>
-                      {r.riskLevel}
-                      {r.riskScore !== null ? ` · ${r.riskScore}` : ""}
-                    </Badge>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
-                </TableCell>
-                <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
-                  {r.country ?? "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href={`/admin/customers/${r.id}`}>
-                      Open <ArrowUpRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </TableCell>
+        <>
+          {/* Desktop / tablet table */}
+          <Table className="hidden sm:table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>KYC</TableHead>
+                <TableHead>Risk</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden md:table-cell">Country</TableHead>
+                <TableHead className="text-right" />
               </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id} className="group cursor-pointer transition-colors hover:bg-muted/40">
+                  <TableCell>
+                    <Link href={`/admin/customers/${r.id}`} className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-xs font-semibold text-white shadow-glow ring-1 ring-white/10">
+                        {initials(r)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-1.5 font-medium transition-colors group-hover:text-primary">
+                          {fullName(r)}
+                          {r.emailVerified && (
+                            <MailCheck className="h-3.5 w-3.5 text-success" aria-label="Email verified" />
+                          )}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {r.email}
+                        </span>
+                      </span>
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={kycVariant(r.kycStatus)}>{r.kycStatus.replaceAll("_", " ")}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {r.riskLevel ? (
+                      <Badge variant={riskVariant(r.riskLevel)}>
+                        {r.riskLevel}
+                        {r.riskScore !== null ? ` · ${r.riskScore}` : ""}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
+                    {r.country ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Link href={`/admin/customers/${r.id}`}>
+                        Open <ArrowUpRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {/* Mobile card list */}
+          <ul className="divide-y divide-border/60 sm:hidden">
+            {rows.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/admin/customers/${r.id}`}
+                  className="flex items-start gap-3 p-4 transition-colors hover:bg-muted/40"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-xs font-semibold text-white shadow-glow ring-1 ring-white/10">
+                    {initials(r)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      {fullName(r)}
+                      {r.emailVerified && (
+                        <MailCheck className="h-3.5 w-3.5 text-success" aria-label="Email verified" />
+                      )}
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">{r.email}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <Badge variant={kycVariant(r.kycStatus)}>
+                        {r.kycStatus.replaceAll("_", " ")}
+                      </Badge>
+                      <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
+                      {r.riskLevel && (
+                        <Badge variant={riskVariant(r.riskLevel)}>
+                          {r.riskLevel}
+                          {r.riskScore !== null ? ` · ${r.riskScore}` : ""}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
             ))}
-          </TableBody>
-        </Table>
+          </ul>
+        </>
       )}
 
       {showPagination && (
-        <div className="flex items-center justify-between border-t border-border/60 p-4">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 p-4">
+          <span className="text-sm font-medium tabular-nums text-muted-foreground">
             Page {page} of {pageCount}
           </span>
           <div className="flex items-center gap-2">

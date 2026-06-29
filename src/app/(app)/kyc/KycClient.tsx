@@ -397,12 +397,12 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
       </div>
 
       {!showWizard ? (
-        <Card>
+        <Card className="ring-glow lift">
           <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
             {status === KycStatus.APPROVED ? (
               <>
-                <div className="rounded-full bg-success/15 p-4">
-                  <CheckCircle2 className="h-8 w-8 text-success" />
+                <div className="animate-float grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
+                  <CheckCircle2 className="h-8 w-8" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold">You&apos;re fully verified</h3>
@@ -416,8 +416,8 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
               </>
             ) : status === KycStatus.IN_REVIEW ? (
               <>
-                <div className="rounded-full bg-primary/15 p-4">
-                  <Search className="h-8 w-8 text-primary" />
+                <div className="animate-float grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-brand-blue/30 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
+                  <Search className="h-8 w-8" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold">We&apos;re reviewing your application</h3>
@@ -431,11 +431,12 @@ export function KycClient({ prefill, initialStatus }: { prefill: KycPrefill; ini
               </>
             ) : (
               <>
-                <div className="rounded-full bg-primary/15 p-4">
-                  <ScanFace className="h-8 w-8 text-primary" />
+                <div className="animate-float relative grid h-16 w-16 place-items-center rounded-2xl bg-brand-gradient text-white shadow-glow">
+                  <span className="absolute inset-0 rounded-2xl bg-brand-gradient opacity-40 blur-xl" />
+                  <ScanFace className="relative h-8 w-8" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">
+                  <h3 className="font-display text-xl font-semibold tracking-tight">
                     {status === KycStatus.REJECTED ? "Try verification again" : "Verify your identity"}
                   </h3>
                   <p className="mt-1 max-w-md text-sm text-muted-foreground">
