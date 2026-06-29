@@ -2,6 +2,8 @@ import { CreditCard, Snowflake, CheckCircle2, XCircle } from "lucide-react";
 import { requirePageAdmin } from "@/lib/page-auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/brand/page-header";
+import { StatCard } from "@/components/brand/stat-card";
+import { AnimatedNumber } from "@/components/brand/animated-number";
 import { CardStatus } from "@prisma/client";
 import { CardsClient, type CardRow } from "./CardsClient";
 
