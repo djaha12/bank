@@ -56,7 +56,8 @@ function txTypeFor(kind: TransferKind): TransactionType {
 export async function executeTransfer(input: TransferInput): Promise<TransferResult> {
   if (input.amount <= 0n) throw Errors.validation("Amount must be positive");
 
-  return prisma.$transaction(
+  try {
+    return await prisma.$transaction(
     async (tx) => {
       const [user, fromAccount] = await Promise.all([
         tx.user.findUnique({ where: { id: input.userId } }),
@@ -103,7 +104,7 @@ export async function executeTransfer(input: TransferInput): Promise<TransferRes
       // Available balance = cached balance - active holds.
       const available = fromAccount.balanceCached - fromAccount.holdTotal;
       if (available < totalDebit) {
-        await recordFailedTransfer(tx, input, currency, fee.amount, "INSUFFICIENT_FUNDS");
+        // Decline (recorded as a FAILED txn AFTER this tx rolls back — see catch).
         throw Errors.insufficientFunds(
           `Need ${formatMoney(totalDebit, currency)}, available ${formatMoney(available, currency)}`,
         );
@@ -112,7 +113,6 @@ export async function executeTransfer(input: TransferInput): Promise<TransferRes
       // Limits.
       const limit = await checkTransferLimits(tx, input.userId, currency, input.amount);
       if (!limit.ok) {
-        await recordFailedTransfer(tx, input, currency, fee.amount, "LIMIT_EXCEEDED");
         throw Errors.limitExceeded(limit.reason);
       }
 
@@ -228,41 +228,47 @@ export async function executeTransfer(input: TransferInput): Promise<TransferRes
         currency,
         alerts: risk.alerts,
       } satisfies TransferResult;
-    },
-    { isolationLevel: "Serializable", timeout: 15000 },
-  );
+      },
+      { isolationLevel: "Serializable", timeout: 15000 },
+    );
+  } catch (err) {
+    // Business declines are recorded as a FAILED transaction in a SEPARATE
+    // (committed) transaction, since the main tx above rolled back.
+    if (
+      err instanceof AppError &&
+      (err.code === "INSUFFICIENT_FUNDS" || err.code === "LIMIT_EXCEEDED")
+    ) {
+      await recordFailedTransfer(input, err.code).catch(() => undefined);
+    }
+    throw err;
+  }
 }
 
 /** Record a declined transfer as a FAILED transaction (no ledger entries). */
-async function recordFailedTransfer(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  input: TransferInput,
-  currency: Currency,
-  feeAmount: bigint,
-  reason: string,
-) {
-  const failed = await tx.transaction.create({
+async function recordFailedTransfer(input: TransferInput, reason: string) {
+  const from = await prisma.account.findUnique({
+    where: { id: input.fromAccountId },
+    select: { currency: true },
+  });
+  if (!from) return;
+  const failed = await prisma.transaction.create({
     data: {
       type: txTypeFor(input.kind),
       status: TransactionStatus.FAILED,
-      currency,
+      currency: from.currency,
       amount: input.amount,
-      feeAmount,
       description: `Declined: ${reason}`,
       userId: input.userId,
       metadata: { kind: input.kind, declineReason: reason },
     },
   });
-  await notify(
-    {
-      userId: input.userId,
-      type: "TRANSACTION",
-      title: "Transfer declined",
-      body: `${formatMoney(input.amount, currency)} transfer was declined (${reason}).`,
-      metadata: { transactionId: failed.id, reason },
-    },
-    tx,
-  );
+  await notify({
+    userId: input.userId,
+    type: "TRANSACTION",
+    title: "Transfer declined",
+    body: `${formatMoney(input.amount, from.currency)} transfer was declined (${reason}).`,
+    metadata: { transactionId: failed.id, reason },
+  });
 }
 
 // Re-export AppError for callers that catch domain failures.
