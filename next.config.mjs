@@ -15,6 +15,8 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // Emits .next/standalone/server.js for the Docker runner stage.
+  output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {

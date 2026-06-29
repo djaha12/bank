@@ -42,7 +42,11 @@ export function sha256(input: string): string {
 }
 
 function pepper(): string {
-  return process.env.SESSION_SECRET ?? "dev-pepper";
+  const s = process.env.SESSION_SECRET;
+  if (process.env.NODE_ENV === "production" && (!s || s.length < 32)) {
+    throw new Error("SESSION_SECRET must be set to >= 32 characters in production");
+  }
+  return s ?? "dev-only-insecure-pepper";
 }
 
 /** Hash an OTP code with a server-side pepper before storage/compare. */

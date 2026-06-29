@@ -13,7 +13,9 @@ export const POST = route(async (req, ctx) => {
 
   const card = await prisma.card.findUnique({ where: { id } });
   if (!card || card.deletedAt || card.userId !== user.id) throw Errors.notFound("Card not found");
+  // Explicit state machine: only a FROZEN card can be unfrozen.
   if (card.status === CardStatus.CLOSED) throw Errors.blocked("Card is closed");
+  if (card.status !== CardStatus.FROZEN) throw Errors.conflict("Card is not frozen");
 
   const updated = await prisma.card.update({
     where: { id: card.id },

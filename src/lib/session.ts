@@ -7,7 +7,16 @@ export const CUSTOMER_COOKIE = "nb_session";
 export const ADMIN_COOKIE = "nb_admin";
 
 const TTL_HOURS = Number(process.env.SESSION_TTL_HOURS ?? 12);
-const secret = () => new TextEncoder().encode(process.env.SESSION_SECRET ?? "dev-secret");
+
+// Fail fast at REQUEST time (not build time) if the signing secret is missing
+// or weak in production — never silently fall back to a dev literal.
+const secret = () => {
+  const s = process.env.SESSION_SECRET;
+  if (process.env.NODE_ENV === "production" && (!s || s.length < 32)) {
+    throw new Error("SESSION_SECRET must be set to >= 32 characters in production");
+  }
+  return new TextEncoder().encode(s ?? "dev-only-insecure-secret");
+};
 
 const baseCookie = {
   httpOnly: true,

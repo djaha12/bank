@@ -98,6 +98,25 @@ export function route(
 ) {
   return async (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => {
     try {
+      // Defense-in-depth CSRF check for state-changing requests. Cookies are
+      // SameSite=lax already; this additionally rejects cross-origin browser
+      // requests. Non-browser clients (no Origin header) are unaffected.
+      const method = req.method.toUpperCase();
+      if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+        const origin = req.headers.get("origin");
+        if (origin) {
+          const host = req.headers.get("host");
+          let originHost: string | null = null;
+          try {
+            originHost = new URL(origin).host;
+          } catch {
+            originHost = null;
+          }
+          if (host && originHost && originHost !== host) {
+            return fail(new AppError(403, "CSRF", "Cross-origin request blocked"));
+          }
+        }
+      }
       return await handler(req, ctx);
     } catch (err) {
       return fail(err);

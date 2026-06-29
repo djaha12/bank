@@ -83,6 +83,18 @@ export async function simulateCardPurchase(input: CardPurchaseInput) {
         );
       }
 
+      // Evaluate risk on the state BEFORE this purchase's hold is written, so
+      // the current MCC isn't already in the customer's "known merchants" set
+      // (otherwise UNUSUAL_MERCHANT could never fire on a genuine first visit).
+      const hits = await evaluateTransactionRisk(tx, {
+        userId: input.userId,
+        amount: input.amount,
+        currency,
+        type: capture ? TransactionType.CARD_CAPTURE : TransactionType.CARD_AUTHORIZATION,
+        newDevice: input.newDevice,
+        mcc: input.mcc,
+      });
+
       const reference = `CARD-${Date.now().toString(36).toUpperCase()}`;
       let transactionId: string;
       let status: TransactionStatus;
@@ -169,14 +181,6 @@ export async function simulateCardPurchase(input: CardPurchaseInput) {
         data: { spentCached: { increment: input.amount } },
       });
 
-      const hits = await evaluateTransactionRisk(tx, {
-        userId: input.userId,
-        amount: input.amount,
-        currency,
-        type: capture ? TransactionType.CARD_CAPTURE : TransactionType.CARD_AUTHORIZATION,
-        newDevice: input.newDevice,
-        mcc: input.mcc,
-      });
       await applyRiskOutcome(tx, input.userId, hits, transactionId);
 
       await writeAudit(

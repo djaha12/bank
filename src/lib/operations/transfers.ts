@@ -116,6 +116,20 @@ export async function executeTransfer(input: TransferInput): Promise<TransferRes
         throw Errors.limitExceeded(limit.reason);
       }
 
+      // Risk evaluation runs on the state BEFORE this transfer is persisted, so
+      // the current transfer never pollutes its own baseline (recent average /
+      // structuring count / velocity). Alerts are linked to the txn afterwards.
+      const counterpartyCountry =
+        typeof input.counterparty?.country === "string" ? (input.counterparty.country as string) : null;
+      const hits = await evaluateTransactionRisk(tx, {
+        userId: input.userId,
+        amount: input.amount,
+        currency,
+        type: txTypeFor(input.kind),
+        newDevice: input.newDevice,
+        counterpartyCountry,
+      });
+
       // Build posting legs.
       const legs: PostingLeg[] = [
         { accountId: fromAccount.id, direction: LedgerDirection.DEBIT, amount: input.amount, currency },
@@ -172,17 +186,7 @@ export async function executeTransfer(input: TransferInput): Promise<TransferRes
         },
       });
 
-      // Risk evaluation (advisory alerts; does not block here).
-      const counterpartyCountry =
-        typeof input.counterparty?.country === "string" ? (input.counterparty.country as string) : null;
-      const hits = await evaluateTransactionRisk(tx, {
-        userId: input.userId,
-        amount: input.amount,
-        currency,
-        type: txTypeFor(input.kind),
-        newDevice: input.newDevice,
-        counterpartyCountry,
-      });
+      // Persist alerts + refreshed risk score, linked to this transaction.
       const risk = await applyRiskOutcome(tx, input.userId, hits, transaction.id);
 
       await writeAudit(

@@ -72,6 +72,15 @@ export async function withIdempotency(
       // Extremely rare race: the row vanished between create and read.
       return { kind: "conflict", status: 409, body: { error: "Idempotency conflict, retry" } };
     }
+    // Per-user isolation: never replay one customer's response to another even
+    // if they reuse the same key value on the same endpoint.
+    if (existing.userId && opts.userId && existing.userId !== opts.userId) {
+      return {
+        kind: "conflict",
+        status: 409,
+        body: { error: "Idempotency-Key already used by another principal" },
+      };
+    }
     if (existing.requestHash !== requestHash) {
       return {
         kind: "conflict",
@@ -94,8 +103,24 @@ export async function withIdempotency(
     };
   }
 
+  // Run the handler. CRITICAL ordering for the idempotency guarantee:
+  //  - If the handler THROWS, its own DB transaction rolled back (no money
+  //    moved), so we delete the key to allow a clean retry.
+  //  - If the handler SUCCEEDS (money committed), we must NOT delete the key,
+  //    even if the subsequent bookkeeping update fails — otherwise a retry
+  //    would re-run the handler and double-post. On bookkeeping failure we
+  //    leave the key IN_PROGRESS, so a retry returns 409 (safe, no double-post).
+  let result: IdemHandlerResult;
   try {
-    const result = await handler();
+    result = await handler();
+  } catch (err) {
+    await prisma.idempotencyKey
+      .delete({ where: { key_endpoint: { key: opts.key, endpoint: opts.endpoint } } })
+      .catch(() => undefined);
+    throw err;
+  }
+
+  try {
     await prisma.idempotencyKey.update({
       where: { key_endpoint: { key: opts.key, endpoint: opts.endpoint } },
       data: {
@@ -105,12 +130,10 @@ export async function withIdempotency(
         transactionId: result.transactionId,
       },
     });
-    return { kind: "ok", status: result.status, body: result.body, replayed: false };
-  } catch (err) {
-    // Handler failed before completing — drop the key so the client may retry.
-    await prisma.idempotencyKey
-      .delete({ where: { key_endpoint: { key: opts.key, endpoint: opts.endpoint } } })
-      .catch(() => undefined);
-    throw err;
+  } catch {
+    // Money already moved; recording COMPLETED failed. Leave the key as-is.
+    // eslint-disable-next-line no-console
+    console.error("[idempotency] post-commit bookkeeping update failed for key", opts.key);
   }
+  return { kind: "ok", status: result.status, body: result.body, replayed: false };
 }
