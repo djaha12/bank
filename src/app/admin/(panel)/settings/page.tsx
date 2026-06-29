@@ -166,14 +166,22 @@ export default async function AdminSettingsPage() {
       </div>
 
       {/* Ledger integrity by currency */}
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {ledgerBalanced ? (
-              <CheckCircle2 className="h-5 w-5 text-success" />
-            ) : (
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-            )}
+          <CardTitle className="flex items-center gap-2 font-display">
+            <span
+              className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-white/10 ${
+                ledgerBalanced
+                  ? "bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald"
+                  : "bg-destructive/15 text-destructive"
+              }`}
+            >
+              {ledgerBalanced ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+            </span>
             Ledger integrity
           </CardTitle>
           <CardDescription>
@@ -189,12 +197,12 @@ export default async function AdminSettingsPage() {
               {integrity.map((i) => (
                 <div
                   key={i.currency}
-                  className={`flex items-center justify-between rounded-xl border p-4 ${
+                  className={`lift flex items-center justify-between rounded-2xl border p-4 ${
                     i.balanced ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"
                   }`}
                 >
                   <div>
-                    <div className="text-sm font-medium">{i.currency}</div>
+                    <div className="font-display text-sm font-semibold">{i.currency}</div>
                     <div className="text-xs text-muted-foreground">
                       net <MoneyText amount={i.net} currency={i.currency} />
                     </div>

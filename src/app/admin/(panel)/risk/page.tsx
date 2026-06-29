@@ -312,7 +312,7 @@ export default async function AdminRiskPage() {
                             {factors.slice(0, 4).map((f, i) => (
                               <span
                                 key={i}
-                                className="rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground"
+                                className="rounded-md border border-border/50 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground"
                               >
                                 {f}
                               </span>
@@ -338,33 +338,53 @@ export default async function AdminRiskPage() {
 
       {/* Rule catalogue */}
       <div className="space-y-4">
-        <div>
-          <h2 className="font-display text-lg font-semibold tracking-tight">Rule catalogue</h2>
-          <p className="text-sm text-muted-foreground">
-            The detection rules ({RULE_ORDER.length}) that feed the AML alerting layer, with sandbox
-            thresholds.
-          </p>
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight">
+              <ListChecks className="h-5 w-5 text-brand-cyan" /> Rule catalogue
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The detection rules ({RULE_ORDER.length}) that feed the AML alerting layer, with
+              sandbox thresholds.
+            </p>
+          </div>
+          {elevated > 0 && (
+            <span className="hidden shrink-0 items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive backdrop-blur sm:inline-flex">
+              <ShieldAlert className="h-4 w-4" />
+              <span className="tabular-nums">{elevated}</span> elevated
+            </span>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {RULE_ORDER.map((code) => {
+          {RULE_ORDER.map((code, i) => {
             const doc = RULE_DOCS[code];
             return (
-              <Card key={code} className="glass-card ring-glow lift group relative overflow-hidden p-5">
+              <div
+                key={code}
+                className="glass-card ring-glow lift group relative animate-fade-up overflow-hidden rounded-2xl p-5"
+                style={{ animationDelay: `${i * 40}ms` }}
+              >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                  <span
+                    className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br ring-1 ring-white/10 ${RULE_ACCENTS[code]}`}
+                  >
                     {doc.icon}
                   </span>
                   <Badge variant={doc.weight} className="text-[10px]">
                     {code.replaceAll("_", " ")}
                   </Badge>
                 </div>
-                <h3 className="mt-3 font-display text-sm font-semibold tracking-tight">{doc.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{doc.description}</p>
+                <h3 className="mt-3.5 font-display text-sm font-semibold tracking-tight">
+                  {doc.title}
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {doc.description}
+                </p>
                 <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 px-2.5 py-1.5 text-xs">
                   <span className="font-medium text-muted-foreground">Threshold: </span>
                   {doc.threshold}
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>
