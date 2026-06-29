@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, LogOut } from "lucide-react";
 import { NotificationsBell } from "@/components/app/notifications-bell";
+import { CommandPalette } from "@/components/app/command-palette";
 import { cn, initials as makeInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -131,6 +132,7 @@ export function AppShell({
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
+          <CommandPalette kind={kind} />
           <div className="ml-auto flex items-center gap-1.5">
             {kind === "customer" && <NotificationsBell />}
             <ModeToggle />
