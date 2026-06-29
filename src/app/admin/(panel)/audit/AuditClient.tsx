@@ -103,13 +103,13 @@ export function AuditClient({
   const to = Math.min(page * pageSize, total);
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border/60 p-4">
-        <span className="text-sm text-muted-foreground">
+    <Card className="glass-card overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border/60 bg-muted/20 p-4">
+        <span className="text-sm font-medium tabular-nums text-muted-foreground">
           Showing {from}–{to} of {total.toLocaleString()}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Fingerprint className="h-3.5 w-3.5" /> hash(prevHash + payload)
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/50 px-2.5 py-1 font-mono text-xs text-muted-foreground">
+          <Fingerprint className="h-3.5 w-3.5 text-brand-cyan" /> hash(prevHash + payload)
         </span>
       </div>
 
@@ -137,7 +137,7 @@ export function AuditClient({
             {rows.map((r) => {
               const am = actorMeta(r.actorType);
               return (
-                <TableRow key={r.id}>
+                <TableRow key={r.id} className="group transition-colors hover:bg-muted/40">
                   <TableCell>
                     <Badge variant={am.variant} className="gap-1">
                       {am.icon}
@@ -161,7 +161,7 @@ export function AuditClient({
                     )}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    <span className="font-mono text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors group-hover:border-brand-cyan/30 group-hover:text-foreground/80">
                       {truncHash(r.hash)}
                     </span>
                   </TableCell>
@@ -181,8 +181,8 @@ export function AuditClient({
       )}
 
       {pageCount > 1 && (
-        <div className="flex items-center justify-between border-t border-border/60 p-4">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 p-4">
+          <span className="text-sm font-medium tabular-nums text-muted-foreground">
             Page {page} of {pageCount}
           </span>
           <div className="flex items-center gap-2">
@@ -210,6 +210,9 @@ export function AuditClient({
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-mono text-base">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow">
+                <Fingerprint className="h-3.5 w-3.5" />
+              </span>
               {active?.action}
             </DialogTitle>
             <DialogDescription>

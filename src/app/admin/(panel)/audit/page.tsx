@@ -60,10 +60,14 @@ export default async function AdminAuditPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Audit Logs"
+        title={
+          <>
+            Audit <span className="text-gradient">trail</span>
+          </>
+        }
         description="Tamper-evident, hash-chained record of every privileged action. Newest first."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-1.5 text-sm text-success">
+          <span className="inline-flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 px-3 py-1.5 text-sm font-medium text-success backdrop-blur">
             <ShieldCheck className="h-4 w-4" />
             Hash-chained
           </span>

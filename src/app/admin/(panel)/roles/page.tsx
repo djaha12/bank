@@ -40,12 +40,17 @@ export default async function AdminRolesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Roles & Permissions"
+        title={
+          <>
+            Roles &amp; <span className="text-gradient">permissions</span>
+          </>
+        }
         description="Role-based access control matrix. Read-only — roles and grants are seeded from the RBAC catalogue."
         actions={
-          <span className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground">
-            <KeyRound className="h-4 w-4" />
-            {roles.length} roles · {permissions.length} permissions
+          <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur">
+            <KeyRound className="h-4 w-4 text-brand-violet" />
+            <span className="tabular-nums text-foreground">{roles.length}</span> roles ·{" "}
+            <span className="tabular-nums text-foreground">{permissions.length}</span> permissions
           </span>
         }
       />
@@ -53,19 +58,21 @@ export default async function AdminRolesPage() {
       {/* Role summary cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {roles.map((r) => (
-          <Card key={r.id} className="p-5">
+          <Card key={r.id} className="glass-card ring-glow lift group relative overflow-hidden p-5">
             <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-sm font-semibold">{r.name}</h3>
+              <div className="min-w-0">
+                <h3 className="font-display text-sm font-semibold tracking-tight">{r.name}</h3>
                 <code className="text-xs text-muted-foreground">{r.key}</code>
               </div>
-              <ShieldCheck className="h-5 w-5 text-primary" />
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                <ShieldCheck className="h-4 w-4" />
+              </span>
             </div>
             {r.description && (
-              <p className="mt-2 text-xs text-muted-foreground">{r.description}</p>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{r.description}</p>
             )}
             <div className="mt-3 flex items-center gap-2">
-              <Badge variant="outline">{roleGrants.get(r.id)?.size ?? 0} permissions</Badge>
+              <Badge variant="default">{roleGrants.get(r.id)?.size ?? 0} permissions</Badge>
               <Badge variant="secondary">{r.admins.length} admins</Badge>
             </div>
           </Card>
