@@ -34,6 +34,7 @@ import {
 import { AmlRuleCode, RiskLevel } from "@prisma/client";
 
 type BadgeVariant = "default" | "secondary" | "success" | "warning" | "destructive" | "outline";
+type Accent = "violet" | "cyan" | "emerald" | "blue";
 
 const LEVEL_ORDER: RiskLevel[] = [
   RiskLevel.CRITICAL,
@@ -41,6 +42,30 @@ const LEVEL_ORDER: RiskLevel[] = [
   RiskLevel.MEDIUM,
   RiskLevel.LOW,
 ];
+
+// Per-level presentation for the distribution StatCards.
+const LEVEL_META: Record<
+  RiskLevel,
+  { label: string; accent: Accent; icon: React.ReactNode; bar: string }
+> = {
+  CRITICAL: { label: "Critical", accent: "violet", icon: <ShieldAlert className="h-4 w-4" />, bar: "bg-destructive" },
+  HIGH: { label: "High", accent: "blue", icon: <ShieldHalf className="h-4 w-4" />, bar: "bg-destructive/70" },
+  MEDIUM: { label: "Medium", accent: "cyan", icon: <ShieldHalf className="h-4 w-4" />, bar: "bg-warning" },
+  LOW: { label: "Low", accent: "emerald", icon: <ShieldCheck className="h-4 w-4" />, bar: "bg-success" },
+};
+
+// Icon-chip accent + badge weight for each rule in the catalogue.
+const RULE_ACCENTS: Record<AmlRuleCode, string> = {
+  LARGE_TRANSACTION: "from-brand-violet/30 to-brand-violet/5 text-brand-violet",
+  MANY_SMALL_TRANSFERS: "from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan",
+  HIGH_RISK_COUNTRY: "from-brand-blue/30 to-brand-blue/5 text-brand-blue",
+  UNUSUAL_MERCHANT: "from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald",
+  VELOCITY: "from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan",
+  NEW_DEVICE_LARGE_TRANSFER: "from-brand-violet/30 to-brand-violet/5 text-brand-violet",
+  FAILED_LOGINS: "from-brand-blue/30 to-brand-blue/5 text-brand-blue",
+  ABOVE_NORMAL_BEHAVIOR: "from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald",
+  SANCTIONS_HIT: "from-brand-violet/30 to-brand-violet/5 text-brand-violet",
+};
 
 function levelVariant(level: RiskLevel): BadgeVariant {
   switch (level) {
@@ -59,8 +84,15 @@ function levelVariant(level: RiskLevel): BadgeVariant {
 function scoreTone(score: number): string {
   if (score >= 75) return "text-destructive";
   if (score >= 50) return "text-warning";
-  if (score >= 25) return "text-primary";
+  if (score >= 25) return "text-brand-cyan";
   return "text-success";
+}
+
+function scoreBar(score: number): string {
+  if (score >= 75) return "bg-destructive";
+  if (score >= 50) return "bg-warning";
+  if (score >= 25) return "bg-brand-cyan";
+  return "bg-success";
 }
 
 // Documentation for every rule in the AmlRuleCode enum (sandbox thresholds).
@@ -164,6 +196,7 @@ export default async function AdminRiskPage() {
   const distMap = new Map<RiskLevel, number>();
   for (const d of distribution) distMap.set(d.level, d._count._all);
   const totalScored = distribution.reduce((sum, d) => sum + d._count._all, 0);
+  const elevated = (distMap.get(RiskLevel.HIGH) ?? 0) + (distMap.get(RiskLevel.CRITICAL) ?? 0);
 
   return (
     <div className="space-y-8">
@@ -184,45 +217,42 @@ export default async function AdminRiskPage() {
 
       {/* Distribution by level */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {LEVEL_ORDER.map((level) => {
+        {LEVEL_ORDER.map((level, i) => {
           const n = distMap.get(level) ?? 0;
           const pct = totalScored > 0 ? Math.round((n / totalScored) * 100) : 0;
-          const barColor =
-            level === RiskLevel.LOW
-              ? "bg-success"
-              : level === RiskLevel.MEDIUM
-                ? "bg-warning"
-                : "bg-destructive";
+          const meta = LEVEL_META[level];
           return (
-            <Card key={level} className="glass-card lift group relative overflow-hidden p-5">
-              <div className="flex items-center justify-between">
-                <Badge variant={levelVariant(level)}>{level}</Badge>
-                <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
+            <StatCard
+              key={level}
+              label={meta.label}
+              accent={meta.accent}
+              index={i}
+              value={<AnimatedNumber value={n} />}
+              hint={`${pct}% of scored`}
+              icon={meta.icon}
+            >
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
+                <div className={`h-full rounded-full ${meta.bar}`} style={{ width: `${pct}%` }} />
               </div>
-              <div className="mt-3 font-display text-3xl font-semibold tabular-nums">
-                {n.toLocaleString()}
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                customer{n === 1 ? "" : "s"} scored
-              </div>
-              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
-              </div>
-            </Card>
+            </StatCard>
           );
         })}
       </div>
 
       {/* Current risk scores */}
-      <Card className="glass-card overflow-hidden">
+      <Card className="glass-card lift overflow-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-display">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="font-display text-lg tracking-tight">
+                Current risk scores
+              </CardTitle>
+              <CardDescription>Highest-scoring customers first. Score is 0–100.</CardDescription>
+            </div>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
               <GaugeCircle className="h-4 w-4" />
             </span>
-            Current risk scores
-          </CardTitle>
-          <CardDescription>Highest-scoring customers first. Score is 0–100.</CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="px-0 pb-0">
           {scores.length === 0 ? (
@@ -230,6 +260,7 @@ export default async function AdminRiskPage() {
               <EmptyState
                 title="No risk scores yet"
                 description="The risk engine has not scored any customers. Scores appear as activity accrues."
+                icon={<GaugeCircle className="h-6 w-6" />}
               />
             </div>
           ) : (
@@ -237,7 +268,7 @@ export default async function AdminRiskPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Score</TableHead>
+                  <TableHead className="w-[180px]">Score</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead className="hidden md:table-cell">Factors</TableHead>
                 </TableRow>
@@ -252,15 +283,25 @@ export default async function AdminRiskPage() {
                   return (
                     <TableRow key={s.id} className="group transition-colors hover:bg-muted/40">
                       <TableCell className="text-sm">
-                        {s.user?.email ?? s.userId.slice(0, 8)}
+                        <span className="font-medium">{s.user?.email ?? s.userId.slice(0, 8)}</span>
                         <span className="block text-xs text-muted-foreground">
                           {s.user?.kycStatus?.replaceAll("_", " ") ?? "—"}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={`text-lg font-semibold tabular-nums ${scoreTone(s.score)}`}>
-                          {s.score}
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`font-display text-lg font-semibold tabular-nums ${scoreTone(s.score)}`}
+                          >
+                            {s.score}
+                          </span>
+                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted/60">
+                            <div
+                              className={`h-full rounded-full ${scoreBar(s.score)}`}
+                              style={{ width: `${Math.min(100, Math.max(0, s.score))}%` }}
+                            />
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={levelVariant(s.level)}>{s.level}</Badge>
