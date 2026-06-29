@@ -338,12 +338,14 @@ export default async function CustomerDetailPage({
       </div>
 
       {/* Accounts */}
-      <Card>
+      <Card className="glass-card lift">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Accounts</CardTitle>
-          </div>
+          <CardTitle className="flex items-center gap-2 font-display text-lg">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-emerald/30 to-brand-emerald/5 text-brand-emerald ring-1 ring-white/10">
+              <Wallet className="h-4 w-4" />
+            </span>
+            Accounts
+          </CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-2">
           {user.accounts.length === 0 ? (
@@ -363,10 +365,10 @@ export default async function CustomerDetailPage({
               </TableHeader>
               <TableBody>
                 {user.accounts.map((a) => (
-                  <TableRow key={a.id}>
+                  <TableRow key={a.id} className="transition-colors hover:bg-muted/40">
                     <TableCell>
                       <div className="font-medium">{a.name}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="font-mono text-xs text-muted-foreground">
                         {a.type} · ••{a.displayNumber}
                       </div>
                     </TableCell>
@@ -394,12 +396,14 @@ export default async function CustomerDetailPage({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Cards */}
-        <Card>
+        <Card className="glass-card lift">
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Cards</CardTitle>
-            </div>
+            <CardTitle className="flex items-center gap-2 font-display text-lg">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-blue/30 to-brand-blue/5 text-brand-blue ring-1 ring-white/10">
+                <CreditCard className="h-4 w-4" />
+              </span>
+              Cards
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {user.cards.length === 0 ? (
@@ -408,10 +412,10 @@ export default async function CustomerDetailPage({
               user.cards.map((c) => (
                 <div
                   key={c.id}
-                  className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-3"
+                  className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-3 transition-colors hover:border-border hover:bg-muted/40"
                 >
                   <div>
-                    <div className="font-medium tabular-nums">
+                    <div className="font-mono font-medium tabular-nums">
                       {c.brand} •••• {c.last4}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -427,12 +431,14 @@ export default async function CustomerDetailPage({
         </Card>
 
         {/* AML alerts */}
-        <Card>
+        <Card className="glass-card lift">
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Siren className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>AML alerts</CardTitle>
-            </div>
+            <CardTitle className="flex items-center gap-2 font-display text-lg">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+                <Siren className="h-4 w-4" />
+              </span>
+              AML alerts
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {user.amlAlerts.length === 0 ? (
@@ -441,11 +447,11 @@ export default async function CustomerDetailPage({
               user.amlAlerts.map((al) => (
                 <div
                   key={al.id}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-3"
+                  className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 transition-colors hover:border-border hover:bg-muted/40"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
+                      <span className="font-mono text-sm font-medium">
                         {al.ruleCode.replaceAll("_", " ")}
                       </span>
                       <Badge variant={riskVariant(al.level)}>{al.level}</Badge>
@@ -466,12 +472,14 @@ export default async function CustomerDetailPage({
       </div>
 
       {/* Recent transactions */}
-      <Card>
+      <Card className="glass-card lift">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <ReceiptText className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Recent transactions</CardTitle>
-          </div>
+          <CardTitle className="flex items-center gap-2 font-display text-lg">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan ring-1 ring-white/10">
+              <ReceiptText className="h-4 w-4" />
+            </span>
+            Recent transactions
+          </CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-2">
           {user.transactions.length === 0 ? (
@@ -491,7 +499,7 @@ export default async function CustomerDetailPage({
               </TableHeader>
               <TableBody>
                 {user.transactions.map((t) => (
-                  <TableRow key={t.id}>
+                  <TableRow key={t.id} className="transition-colors hover:bg-muted/40">
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {fmtDateTime(t.createdAt)}
                     </TableCell>
