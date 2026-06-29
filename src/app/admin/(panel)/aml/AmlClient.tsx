@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -58,11 +59,42 @@ interface Group {
   items: AmlAlertView[];
 }
 
-const LEVEL_META: Record<RiskLevel, { label: string; variant: BadgeVariant; ring: string; dot: string }> = {
-  CRITICAL: { label: "Critical", variant: "destructive", ring: "border-destructive/40", dot: "bg-destructive" },
-  HIGH: { label: "High", variant: "destructive", ring: "border-destructive/30", dot: "bg-destructive/80" },
-  MEDIUM: { label: "Medium", variant: "warning", ring: "border-warning/30", dot: "bg-warning" },
-  LOW: { label: "Low", variant: "secondary", ring: "border-border/60", dot: "bg-muted-foreground" },
+const LEVEL_META: Record<
+  RiskLevel,
+  { label: string; variant: BadgeVariant; ring: string; dot: string; bar: string; glow: string }
+> = {
+  CRITICAL: {
+    label: "Critical",
+    variant: "destructive",
+    ring: "border-destructive/50",
+    dot: "bg-destructive text-destructive",
+    bar: "from-destructive via-destructive/60 to-transparent",
+    glow: "shadow-[0_24px_60px_-28px_hsl(var(--destructive)/0.55)]",
+  },
+  HIGH: {
+    label: "High",
+    variant: "destructive",
+    ring: "border-destructive/30",
+    dot: "bg-destructive/80 text-destructive/80",
+    bar: "from-destructive/70 via-destructive/40 to-transparent",
+    glow: "shadow-[0_24px_60px_-30px_hsl(var(--destructive)/0.4)]",
+  },
+  MEDIUM: {
+    label: "Medium",
+    variant: "warning",
+    ring: "border-warning/40",
+    dot: "bg-warning text-warning",
+    bar: "from-warning via-warning/50 to-transparent",
+    glow: "shadow-[0_24px_60px_-30px_hsl(var(--warning)/0.4)]",
+  },
+  LOW: {
+    label: "Low",
+    variant: "secondary",
+    ring: "border-border/60",
+    dot: "bg-muted-foreground text-muted-foreground",
+    bar: "from-brand-cyan/60 via-brand-cyan/30 to-transparent",
+    glow: "",
+  },
 };
 
 const STATUS_META: Record<string, BadgeVariant> = {
@@ -132,20 +164,30 @@ function fmtRelative(iso: string): string {
 
 export function AmlClient({ grouped, adminId }: { grouped: Group[]; adminId: string }) {
   const visible = grouped.filter((g) => g.items.length > 0);
+  let cardIndex = 0;
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {visible.map((group) => {
         const meta = LEVEL_META[group.level];
         return (
-          <section key={group.level} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
-              <h2 className="text-sm font-semibold uppercase tracking-wide">{meta.label}</h2>
-              <Badge variant="outline">{group.items.length}</Badge>
+          <section key={group.level} className="space-y-4">
+            <div className="flex items-center gap-2.5">
+              <span className={`dot ${meta.dot}`} />
+              <h2 className="font-display text-sm font-semibold uppercase tracking-wider">
+                {meta.label}
+              </h2>
+              <Badge variant={meta.variant}>{group.items.length}</Badge>
+              <div className="ml-1 h-px flex-1 bg-gradient-to-r from-border/60 to-transparent" />
             </div>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {group.items.map((alert) => (
-                <AlertCard key={alert.id} alert={alert} adminId={adminId} ring={meta.ring} />
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  adminId={adminId}
+                  meta={meta}
+                  index={cardIndex++}
+                />
               ))}
             </div>
           </section>
@@ -158,11 +200,13 @@ export function AmlClient({ grouped, adminId }: { grouped: Group[]; adminId: str
 function AlertCard({
   alert,
   adminId,
-  ring,
+  meta,
+  index,
 }: {
   alert: AmlAlertView;
   adminId: string;
-  ring: string;
+  meta: (typeof LEVEL_META)[RiskLevel];
+  index: number;
 }) {
   const router = useRouter();
   const [notesOpen, setNotesOpen] = React.useState(false);
@@ -195,11 +239,22 @@ function AlertCard({
   }
 
   return (
-    <Card className={`overflow-hidden border ${ring}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: Math.min(index, 8) * 0.05, ease: [0.22, 1, 0.36, 1] }}
+    >
+    <Card className={`glass-card lift group relative overflow-hidden border ${meta.ring} ${meta.glow}`}>
+      <span
+        className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${meta.bar}`}
+        aria-hidden
+      />
       <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <CardTitle className="text-sm font-mono">{alert.ruleCode.replaceAll("_", " ")}</CardTitle>
+            <CardTitle className="font-mono text-sm tracking-tight">
+              {alert.ruleCode.replaceAll("_", " ")}
+            </CardTitle>
             <p className="mt-1 truncate text-xs text-muted-foreground">{alert.userEmail ?? "—"}</p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
