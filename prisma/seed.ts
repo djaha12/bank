@@ -15,4 +15,4 @@ if (existsSync(".env")) {
   }
 }
 
-await import("./seed.main.ts");
+await import("./seed.main.js");
