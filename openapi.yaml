@@ -1,0 +1,949 @@
+openapi: 3.1.0
+info:
+  title: NEO BANK OS 2026 API
+  version: 0.1.0
+  description: >
+    SANDBOX virtual-bank REST API (NOT a real bank). Money is BigInt minor units
+    in the domain and is returned as STRINGS inside a `{ data }` envelope.
+    Money-movement endpoints require an `Idempotency-Key` header. See API.md,
+    SECURITY.md, and COMPLIANCE.md.
+  license:
+    name: Educational sandbox (no warranty)
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: Auth
+  - name: KYC
+  - name: Accounts
+  - name: Transfers
+  - name: Cards
+  - name: Analytics
+  - name: AI
+  - name: Health
+  - name: Admin
+
+components:
+  securitySchemes:
+    customerSession:
+      type: apiKey
+      in: cookie
+      name: nb_session
+      description: DB-backed customer session cookie (set on login / OTP verify).
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: nb_admin
+      description: Admin JWT session cookie (set on admin login).
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Unique key (8–200 chars) guaranteeing at-most-once money posting.
+      schema: { type: string, minLength: 8, maxLength: 200 }
+    Take:
+      name: take
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100 }
+    Skip:
+      name: skip
+      in: query
+      schema: { type: integer, minimum: 0 }
+  schemas:
+    Money:
+      type: string
+      description: Decimal string of minor units (e.g. "123456" tyiyn/cents).
+      example: "123456"
+    MoneyInput:
+      type: string
+      description: Positive decimal amount, up to 2 decimal places.
+      pattern: '^\d{1,15}(\.\d{1,2})?$'
+      example: "100.00"
+    Currency:
+      type: string
+      enum: [KGS, USD, EUR]
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: VALIDATION_ERROR }
+            message: { type: string }
+            details: {}
+    Account:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: [string, "null"] }
+        ownerType: { type: string, enum: [USER, SYSTEM] }
+        type: { type: string, enum: [CHECKING, SAVINGS, CARD, SYSTEM] }
+        currency: { $ref: '#/components/schemas/Currency' }
+        status: { type: string, enum: [ACTIVE, FROZEN, CLOSED] }
+        name: { type: string }
+        displayNumber: { type: string }
+        balanceCached: { $ref: '#/components/schemas/Money' }
+        holdTotal: { $ref: '#/components/schemas/Money' }
+        createdAt: { type: string, format: date-time }
+    TransferResult:
+      type: object
+      properties:
+        transferId: { type: string, format: uuid }
+        transactionId: { type: string, format: uuid }
+        status: { type: string, enum: [PENDING, COMPLETED, FAILED, REVERSED] }
+        fromBalanceAfter: { $ref: '#/components/schemas/Money' }
+        toBalanceAfter: { oneOf: [{ $ref: '#/components/schemas/Money' }, { type: "null" }] }
+        fee: { $ref: '#/components/schemas/Money' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        alerts: { type: integer }
+    Card:
+      type: object
+      description: Display-only. No PAN/CVV ever exists.
+      properties:
+        id: { type: string, format: uuid }
+        accountId: { type: string, format: uuid }
+        type: { type: string, enum: [VIRTUAL_DEBIT] }
+        status: { type: string, enum: [ACTIVE, FROZEN, CLOSED] }
+        last4: { type: string }
+        brand: { type: string, example: NEO }
+        expMonth: { type: integer }
+        expYear: { type: integer }
+        cardholderName: { type: string }
+        onlinePaymentsEnabled: { type: boolean }
+        atmEnabled: { type: boolean }
+        contactlessEnabled: { type: boolean }
+        limit:
+          type: [object, "null"]
+          properties:
+            dailyLimit: { $ref: '#/components/schemas/Money' }
+            monthlyLimit: { $ref: '#/components/schemas/Money' }
+            perTxLimit: { $ref: '#/components/schemas/Money' }
+            atmDailyLimit: { $ref: '#/components/schemas/Money' }
+        createdAt: { type: string, format: date-time }
+  responses:
+    Unauthorized:
+      description: Authentication required.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Forbidden / KYC required / blocked.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Resource not found.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Validation:
+      description: Validation error (Zod) or bad input.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    RateLimited:
+      description: Too many requests.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    InsufficientFunds:
+      description: Insufficient available balance.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new customer + issue signup OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8, maxLength: 128 }
+                firstName: { type: string }
+                lastName: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      userId: { type: string, format: uuid }
+                      devCode: { type: [string, "null"], description: Present only when NODE_ENV != production }
+        '409': { $ref: '#/components/responses/Validation' }
+        '422': { $ref: '#/components/responses/Validation' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Customer login (sets nb_session cookie)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id: { type: string, format: uuid }
+                          email: { type: string }
+                          kycStatus: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current session
+      security: [{ customerSession: [] }]
+      responses:
+        '200': { description: OK }
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user + profile (or null)
+      responses:
+        '200': { description: OK }
+
+  /api/auth/otp/request:
+    post:
+      tags: [Auth]
+      summary: Issue an OTP (mock delivery)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                purpose: { type: string, enum: [LOGIN, SIGNUP, STEP_UP], default: LOGIN }
+      responses:
+        '200': { description: OK }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/auth/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Verify an OTP and create a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, pattern: '^\d{6}$' }
+                purpose: { type: string, enum: [LOGIN, SIGNUP, STEP_UP], default: LOGIN }
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/kyc/start:
+    post:
+      tags: [KYC]
+      summary: Open (or reuse) a KYC application
+      security: [{ customerSession: [] }]
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/kyc/submit:
+    post:
+      tags: [KYC]
+      summary: Submit KYC application data + sandbox documents
+      security: [{ customerSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, dateOfBirth, nationality, country, addressLine1, city, postalCode, occupation, sourceOfFunds]
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                dateOfBirth: { type: string }
+                nationality: { type: string, minLength: 2, maxLength: 2 }
+                country: { type: string, minLength: 2, maxLength: 2 }
+                addressLine1: { type: string }
+                addressLine2: { type: string }
+                city: { type: string }
+                postalCode: { type: string }
+                occupation: { type: string }
+                sourceOfFunds: { type: string, enum: [SALARY, BUSINESS, INVESTMENTS, SAVINGS, OTHER] }
+                declaredPepStatus: { type: boolean, default: false }
+                riskQuestionnaire: { type: object, additionalProperties: true }
+                documents:
+                  type: array
+                  maxItems: 10
+                  items:
+                    type: object
+                    required: [type]
+                    properties:
+                      type: { type: string, enum: [PASSPORT, ID_CARD, DRIVERS_LICENSE, PROOF_OF_ADDRESS, SELFIE] }
+                      fileName: { type: string }
+      responses:
+        '201': { description: Created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/Validation' }
+
+  /api/kyc/status:
+    get:
+      tags: [KYC]
+      summary: Latest KYC application + documents
+      security: [{ customerSession: [] }]
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/accounts:
+    get:
+      tags: [Accounts]
+      summary: List the caller's accounts
+      security: [{ customerSession: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Account' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/accounts/{id}:
+    get:
+      tags: [Accounts]
+      summary: Get an owned account (with active holds)
+      security: [{ customerSession: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/accounts/{id}/transactions:
+    get:
+      tags: [Accounts]
+      summary: Account ledger history (JSON paginated, or CSV export)
+      security: [{ customerSession: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Take' }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: format, in: query, schema: { type: string, enum: [csv] } }
+      responses:
+        '200':
+          description: JSON page, or a text/csv attachment when format=csv.
+          content:
+            application/json: { schema: { type: object } }
+            text/csv: { schema: { type: string } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/transfers/internal:
+    post:
+      tags: [Transfers]
+      summary: Own-account transfer (same currency)
+      security: [{ customerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fromAccountId, toAccountId, amount]
+              properties:
+                fromAccountId: { type: string, format: uuid }
+                toAccountId: { type: string, format: uuid }
+                amount: { $ref: '#/components/schemas/MoneyInput' }
+                note: { type: string, maxLength: 200 }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TransferResult' }
+        '402': { $ref: '#/components/responses/InsufficientFunds' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Validation' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/transfers/p2p:
+    post:
+      tags: [Transfers]
+      summary: Peer-to-peer transfer (toAccountId or recipientEmail)
+      security: [{ customerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fromAccountId, amount]
+              properties:
+                fromAccountId: { type: string, format: uuid }
+                toAccountId: { type: string, format: uuid }
+                recipientEmail: { type: string, format: email }
+                amount: { $ref: '#/components/schemas/MoneyInput' }
+                note: { type: string, maxLength: 200 }
+                counterparty:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    country: { type: string, minLength: 2, maxLength: 2 }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { type: object, properties: { data: { $ref: '#/components/schemas/TransferResult' } } }
+        '402': { $ref: '#/components/responses/InsufficientFunds' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Validation' }
+
+  /api/transfers/bank:
+    post:
+      tags: [Transfers]
+      summary: Bank/external transfer (sandbox, settles to SETTLEMENT)
+      security: [{ customerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fromAccountId, amount, counterparty]
+              properties:
+                fromAccountId: { type: string, format: uuid }
+                amount: { $ref: '#/components/schemas/MoneyInput' }
+                note: { type: string, maxLength: 200 }
+                counterparty:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: { type: string }
+                    ibanMasked: { type: string }
+                    bank: { type: string }
+                    country: { type: string, minLength: 2, maxLength: 2 }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { type: object, properties: { data: { $ref: '#/components/schemas/TransferResult' } } }
+        '402': { $ref: '#/components/responses/InsufficientFunds' }
+        '422': { $ref: '#/components/responses/Validation' }
+
+  /api/transfers/fx:
+    post:
+      tags: [Transfers]
+      summary: Cross-currency conversion (amount in source currency)
+      security: [{ customerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fromAccountId, toAccountId, amount]
+              properties:
+                fromAccountId: { type: string, format: uuid }
+                toAccountId: { type: string, format: uuid }
+                amount: { $ref: '#/components/schemas/MoneyInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      transactionId: { type: string, format: uuid }
+                      reference: { type: string }
+                      base: { $ref: '#/components/schemas/Currency' }
+                      quote: { $ref: '#/components/schemas/Currency' }
+                      inputAmount: { $ref: '#/components/schemas/Money' }
+                      outputAmount: { $ref: '#/components/schemas/Money' }
+                      fee: { $ref: '#/components/schemas/Money' }
+                      rateScaled: { type: string }
+                      effectiveRateScaled: { type: string }
+                      scale: { type: string }
+                      spreadBps: { type: integer }
+        '402': { $ref: '#/components/responses/InsufficientFunds' }
+        '422': { $ref: '#/components/responses/Validation' }
+
+  /api/transfers/{id}/receipt:
+    get:
+      tags: [Transfers]
+      summary: Transfer receipt with ledger entries
+      security: [{ customerSession: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/cards:
+    get:
+      tags: [Cards]
+      summary: List the caller's cards (display-only)
+      security: [{ customerSession: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Card' } } } }
+    post:
+      tags: [Cards]
+      summary: Issue a virtual debit card
+      security: [{ customerSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountId, cardholderName]
+              properties:
+                accountId: { type: string, format: uuid }
+                cardholderName: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { type: object, properties: { data: { $ref: '#/components/schemas/Card' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/cards/{id}/freeze:
+    post:
+      tags: [Cards]
+      summary: Freeze a card
+      security: [{ customerSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/cards/{id}/unfreeze:
+    post:
+      tags: [Cards]
+      summary: Unfreeze a card
+      security: [{ customerSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/cards/{id}/limits:
+    patch:
+      tags: [Cards]
+      summary: Update card limits + toggles
+      security: [{ customerSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dailyLimit: { $ref: '#/components/schemas/MoneyInput' }
+                monthlyLimit: { $ref: '#/components/schemas/MoneyInput' }
+                perTxLimit: { $ref: '#/components/schemas/MoneyInput' }
+                atmDailyLimit: { $ref: '#/components/schemas/MoneyInput' }
+                onlinePaymentsEnabled: { type: boolean }
+                atmEnabled: { type: boolean }
+                contactlessEnabled: { type: boolean }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/cards/{id}/simulate-purchase:
+    post:
+      tags: [Cards]
+      summary: Simulate a card authorization (hold) or capture (settle)
+      security: [{ customerSession: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, merchantName, mcc]
+              properties:
+                amount: { $ref: '#/components/schemas/MoneyInput' }
+                merchantName: { type: string }
+                mcc: { type: string, minLength: 2, maxLength: 8 }
+                capture: { type: boolean, default: true }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      transactionId: { type: string, format: uuid }
+                      reference: { type: string }
+                      status: { type: string, enum: [PENDING, COMPLETED, FAILED, REVERSED] }
+                      holdStatus: { type: string, enum: [HELD, CAPTURED, RELEASED, EXPIRED] }
+                      amount: { $ref: '#/components/schemas/Money' }
+                      fee: { $ref: '#/components/schemas/Money' }
+                      currency: { $ref: '#/components/schemas/Currency' }
+                      balanceAfter: { $ref: '#/components/schemas/Money' }
+                      availableAfter: { $ref: '#/components/schemas/Money' }
+        '402': { $ref: '#/components/responses/InsufficientFunds' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/analytics/spending:
+    get:
+      tags: [Analytics]
+      summary: Spending grouped by category
+      security: [{ customerSession: [] }]
+      parameters:
+        - { name: currency, in: query, schema: { $ref: '#/components/schemas/Currency' } }
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365 } }
+      responses:
+        '200': { description: OK }
+
+  /api/analytics/cashflow:
+    get:
+      tags: [Analytics]
+      summary: Monthly inflow/outflow/net
+      security: [{ customerSession: [] }]
+      parameters:
+        - { name: currency, in: query, schema: { $ref: '#/components/schemas/Currency' } }
+        - { name: months, in: query, schema: { type: integer, minimum: 1, maximum: 24 } }
+      responses:
+        '200': { description: OK }
+
+  /api/analytics/budgets:
+    get:
+      tags: [Analytics]
+      summary: Budget progress
+      security: [{ customerSession: [] }]
+      responses:
+        '200': { description: OK }
+
+  /api/ai/chat:
+    post:
+      tags: [AI]
+      summary: AI assistant chat (mock provider)
+      security: [{ customerSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                conversationId: { type: string, format: uuid }
+                message: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '200': { description: OK }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/ai/spending-insight:
+    post:
+      tags: [AI]
+      summary: AI-phrased spending insight
+      security: [{ customerSession: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currency: { $ref: '#/components/schemas/Currency' }
+      responses:
+        '200': { description: OK }
+
+  /api/ai/risk-explanation:
+    post:
+      tags: [AI]
+      summary: Explain why a transaction was flagged
+      security: [{ customerSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [transactionId]
+              properties:
+                transactionId: { type: string, format: uuid }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Liveness + ledger-integrity probe (not enveloped)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  sandbox: { type: boolean }
+                  time: { type: string, format: date-time }
+                  db: { type: string }
+                  ledgerBalanced: { type: boolean }
+        '503': { description: Degraded }
+
+  /api/admin/login:
+    post:
+      tags: [Admin]
+      summary: Admin login (sets nb_admin cookie)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/admin/logout:
+    post:
+      tags: [Admin]
+      summary: Admin logout
+      security: [{ adminSession: [] }]
+      responses:
+        '200': { description: OK }
+
+  /api/admin/customers:
+    get:
+      tags: [Admin]
+      summary: List customers (permission customers.read)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Take' }
+        - { $ref: '#/components/parameters/Skip' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/customers/{id}:
+    get:
+      tags: [Admin]
+      summary: Customer detail (permission customers.read)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Admin]
+      summary: Block / unblock / suspend customer (permission customers.write)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, reason]
+              properties:
+                action: { type: string, enum: [BLOCK, UNBLOCK, SUSPEND] }
+                reason: { type: string }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/kyc/{id}/review:
+    patch:
+      tags: [Admin]
+      summary: Review a KYC application (permission kyc.review)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [APPROVED, REJECTED, IN_REVIEW] }
+                notes: { type: string }
+                rejectionReason: { type: string }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/aml-alerts:
+    get:
+      tags: [Admin]
+      summary: List AML alerts (permission aml.read)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [OPEN, REVIEWING, CLOSED] } }
+        - { name: level, in: query, schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] } }
+        - { $ref: '#/components/parameters/Take' }
+        - { $ref: '#/components/parameters/Skip' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/aml-alerts/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update an AML alert (permission aml.write)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [OPEN, REVIEWING, CLOSED] }
+                adminNotes: { type: string }
+                assignToSelf: { type: boolean }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/disputes:
+    get:
+      tags: [Admin]
+      summary: List disputes (permission disputes.read)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [OPEN, INVESTIGATING, RESOLVED, REJECTED] } }
+        - { $ref: '#/components/parameters/Take' }
+        - { $ref: '#/components/parameters/Skip' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/disputes/{id}:
+    patch:
+      tags: [Admin]
+      summary: Resolve a dispute, optionally refund (permission disputes.write)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [OPEN, INVESTIGATING, RESOLVED, REJECTED] }
+                resolution: { type: string }
+                refund: { type: boolean }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/transactions:
+    get:
+      tags: [Admin]
+      summary: List transactions (permission transactions.read)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, COMPLETED, FAILED, REVERSED] } }
+        - { name: type, in: query, schema: { type: string } }
+        - { name: userId, in: query, schema: { type: string, format: uuid } }
+        - { name: q, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Take' }
+        - { $ref: '#/components/parameters/Skip' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/risk-scores:
+    get:
+      tags: [Admin]
+      summary: List current risk scores (permission risk.read)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: order, in: query, schema: { type: string, enum: [asc, desc] } }
+        - { name: level, in: query, schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] } }
+        - { $ref: '#/components/parameters/Take' }
+        - { $ref: '#/components/parameters/Skip' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/audit-logs:
+    get:
+      tags: [Admin]
+      summary: List audit log entries (permission audit.read)
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: action, in: query, schema: { type: string } }
+        - { name: entity, in: query, schema: { type: string } }
+        - { name: actorType, in: query, schema: { type: string, enum: [USER, ADMIN, SYSTEM] } }
+        - { $ref: '#/components/parameters/Take' }
+        - { $ref: '#/components/parameters/Skip' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
