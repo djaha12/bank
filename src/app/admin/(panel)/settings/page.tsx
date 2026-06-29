@@ -218,10 +218,13 @@ export default async function AdminSettingsPage() {
       </Card>
 
       {/* FX rates */}
-      <Card className="overflow-hidden">
+      <Card className="glass-card overflow-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ArrowLeftRight className="h-5 w-5 text-primary" /> FX rates
+          <CardTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-cyan/30 to-brand-cyan/5 text-brand-cyan ring-1 ring-white/10">
+              <ArrowLeftRight className="h-4 w-4" />
+            </span>
+            FX rates
           </CardTitle>
           <CardDescription>
             Sandbox conversion rates with applied spread. Rates are integer-scaled on the wire.
@@ -245,7 +248,7 @@ export default async function AdminSettingsPage() {
               </TableHeader>
               <TableBody>
                 {latestRates.map((r) => (
-                  <TableRow key={r.id}>
+                  <TableRow key={r.id} className="transition-colors hover:bg-muted/40">
                     <TableCell className="font-medium">
                       {r.baseCurrency} → {r.quoteCurrency}
                     </TableCell>
@@ -274,10 +277,13 @@ export default async function AdminSettingsPage() {
       </Card>
 
       {/* Fee rules */}
-      <Card className="overflow-hidden">
+      <Card className="glass-card overflow-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-primary" /> Fee rules
+          <CardTitle className="flex items-center gap-2 font-display">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-violet/30 to-brand-violet/5 text-brand-violet ring-1 ring-white/10">
+              <Receipt className="h-4 w-4" />
+            </span>
+            Fee rules
           </CardTitle>
           <CardDescription>
             Fee = flat amount + (amount × bps ÷ 10,000), in minor units.
@@ -301,7 +307,7 @@ export default async function AdminSettingsPage() {
               </TableHeader>
               <TableBody>
                 {feeRules.map((f) => (
-                  <TableRow key={f.id}>
+                  <TableRow key={f.id} className="transition-colors hover:bg-muted/40">
                     <TableCell>
                       <code className="text-xs">{f.key}</code>
                       <span className="block text-xs text-muted-foreground">{f.description}</span>
@@ -377,14 +383,14 @@ function HealthRow({
   detail: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/30">
       <div className="flex items-center gap-2.5">
         <span className={ok ? "text-success" : "text-destructive"}>{icon}</span>
         <span className="text-sm font-medium">{label}</span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <span className="text-xs text-muted-foreground">{detail}</span>
-        <span className={`h-2 w-2 rounded-full ${ok ? "bg-success shadow-glow" : "bg-destructive"}`} />
+        <span className={`dot ${ok ? "text-success" : "text-destructive"}`} />
       </div>
     </div>
   );
